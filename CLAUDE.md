@@ -13,30 +13,37 @@ This is a Vue 3 + TypeScript frontend application for a Discord automated schedu
 - **Build Tool**: Vite 7
 - **State Management**: Pinia
 - **Routing**: Vue Router 4
+- **Styling**: Tailwind CSS 4
 - **Linting**: ESLint with oxlint for performance-critical correctness checks
 - **Formatting**: Prettier
 
 ## Required Environment
 
 - Node.js: ^20.19.0 || >=22.12.0
+- Package Manager: pnpm 9.9.0 (specified in package.json)
 
 ## Common Commands
 
+**Note: This project uses pnpm as the package manager.**
+
 ```bash
+# Installation
+pnpm install
+
 # Development
-npm run dev              # Start dev server with hot-reload
+pnpm run dev              # Start dev server with hot-reload
 
 # Building
-npm run build           # Type-check + build for production
-npm run build-only      # Build without type-checking
-npm run type-check      # Run TypeScript compiler check
-npm run preview         # Preview production build locally
+pnpm run build           # Type-check + build for production
+pnpm run build-only      # Build without type-checking
+pnpm run type-check      # Run TypeScript compiler check
+pnpm run preview         # Preview production build locally
 
 # Code Quality
-npm run lint            # Run all linters (oxlint + eslint) with auto-fix
-npm run lint:oxlint     # Run oxlint with auto-fix (correctness checks)
-npm run lint:eslint     # Run ESLint with auto-fix
-npm run format          # Format code with Prettier
+pnpm run lint            # Run all linters (oxlint + eslint) with auto-fix
+pnpm run lint:oxlint     # Run oxlint with auto-fix (correctness checks)
+pnpm run lint:eslint     # Run ESLint with auto-fix
+pnpm run format          # Format code with Prettier
 ```
 
 ## Architecture
@@ -68,6 +75,13 @@ The project uses a two-tier linting approach:
 - Single quotes
 - 100 character line width
 - Vue SFC files use `<script setup lang="ts">` syntax
+
+### Styling with Tailwind CSS 4
+- Tailwind CSS 4 is integrated via `@tailwindcss/vite` plugin
+- Global styles imported in `src/main.ts` from `src/assets/main.css`
+- Uses the new `@import 'tailwindcss'` syntax (Tailwind 4 approach)
+- No separate configuration file needed - Tailwind 4 works out of the box
+- Use utility classes directly in Vue component templates
 
 ## API Integration
 
