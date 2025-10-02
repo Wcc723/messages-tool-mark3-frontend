@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -10,14 +10,19 @@ type ScheduleStatus = 'draft' | 'active'
 interface Channel {
   id: string
   name: string
+  category?: string
 }
+
+// Channel search
+const channelSearch = ref('')
+const isChannelDropdownOpen = ref(false)
 
 // Form data
 const form = ref({
   title: '',
   content: '',
   scheduleType: 'once' as ScheduleType,
-  scheduledTime: '09:00:00',
+  scheduledTime: '09:00',
   scheduledDate: '',
   weekDay: 1,
   monthDay: 1,
@@ -26,42 +31,72 @@ const form = ref({
   status: 'draft' as ScheduleStatus,
 })
 
-// Mock channels data
+// Mock channels data with categories
 const channels = ref<Channel[]>([
-  { id: '123456789', name: '# 一般' },
-  { id: '987654321', name: '# 公告' },
-  { id: '456789123', name: '# 開發' },
-  { id: '789123456', name: '# 測試' },
+  { id: '123456789', name: 'general', category: '文字頻道' },
+  { id: '987654321', name: 'announcements', category: '文字頻道' },
+  { id: '456789123', name: 'development', category: '開發頻道' },
+  { id: '789123456', name: 'testing', category: '開發頻道' },
 ])
 
 const timezones = [
-  { value: 'Asia/Taipei', label: 'Asia/Taipei (UTC+8)' },
-  { value: 'Asia/Tokyo', label: 'Asia/Tokyo (UTC+9)' },
-  { value: 'Asia/Shanghai', label: 'Asia/Shanghai (UTC+8)' },
-  { value: 'UTC', label: 'UTC (UTC+0)' },
-  { value: 'America/New_York', label: 'America/New_York (UTC-5)' },
-  { value: 'Europe/London', label: 'Europe/London (UTC+0)' },
+  { value: 'Asia/Taipei', label: '台北 (UTC+8)', offset: '+8' },
+  { value: 'Asia/Tokyo', label: '東京 (UTC+9)', offset: '+9' },
+  { value: 'Asia/Shanghai', label: '上海 (UTC+8)', offset: '+8' },
+  { value: 'UTC', label: 'UTC (UTC+0)', offset: '+0' },
+  { value: 'America/New_York', label: '紐約 (UTC-5)', offset: '-5' },
+  { value: 'Europe/London', label: '倫敦 (UTC+0)', offset: '+0' },
 ]
 
 const weekDays = [
-  { value: 0, label: '星期日' },
-  { value: 1, label: '星期一' },
-  { value: 2, label: '星期二' },
-  { value: 3, label: '星期三' },
-  { value: 4, label: '星期四' },
-  { value: 5, label: '星期五' },
-  { value: 6, label: '星期六' },
+  { value: 1, label: '週一', short: '一' },
+  { value: 2, label: '週二', short: '二' },
+  { value: 3, label: '週三', short: '三' },
+  { value: 4, label: '週四', short: '四' },
+  { value: 5, label: '週五', short: '五' },
+  { value: 6, label: '週六', short: '六' },
+  { value: 0, label: '週日', short: '日' },
 ]
 
+// Computed filtered channels
+const filteredChannels = computed(() => {
+  if (!channelSearch.value) return channels.value
+  const search = channelSearch.value.toLowerCase()
+  return channels.value.filter(
+    (channel) =>
+      channel.name.toLowerCase().includes(search) ||
+      channel.category?.toLowerCase().includes(search),
+  )
+})
+
+// Grouped channels by category
+const groupedChannels = computed(() => {
+  const groups: Record<string, Channel[]> = {}
+  filteredChannels.value.forEach((channel) => {
+    const category = channel.category || '未分類'
+    if (!groups[category]) groups[category] = []
+    groups[category].push(channel)
+  })
+  return groups
+})
+
+const selectedChannel = computed(() => {
+  return channels.value.find((c) => c.id === form.value.channelId)
+})
+
+const selectChannel = (channelId: string) => {
+  form.value.channelId = channelId
+  isChannelDropdownOpen.value = false
+  channelSearch.value = ''
+}
+
 onMounted(() => {
-  // Set default date for once type
   const tomorrow = new Date()
   tomorrow.setDate(tomorrow.getDate() + 1)
   form.value.scheduledDate = tomorrow.toISOString().split('T')[0]
 })
 
 const handleSubmit = () => {
-  // Mock save - no API call
   console.log('Saving schedule:', form.value)
   alert('排程已建立！')
   router.push('/dashboard/schedule/calendar')
@@ -70,264 +105,542 @@ const handleSubmit = () => {
 const handleCancel = () => {
   router.push('/dashboard/schedule/calendar')
 }
+
+const isFormValid = () => {
+  return (
+    form.value.title.trim() !== '' &&
+    form.value.content.trim() !== '' &&
+    form.value.channelId !== ''
+  )
+}
 </script>
 
 <template>
   <div>
-    <!-- Header -->
-    <div class="mb-6">
-      <h1 class="text-3xl font-bold text-gray-800 mb-2">新增排程</h1>
-      <p class="text-gray-600">建立新的 Discord 訊息排程</p>
+    <div class="max-w-6xl mx-auto">
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900 mb-2">建立新排程</h1>
+          <p class="text-gray-600">設定您的 Discord 訊息排程</p>
+        </div>
+        <button
+          @click="handleCancel"
+          class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition cursor-pointer"
+        >
+          <i class="bi bi-x-lg text-xl"></i>
+        </button>
+      </div>
     </div>
 
-    <!-- Form -->
-    <form @submit.prevent="handleSubmit" class="bg-white rounded-lg shadow-sm p-6">
-      <div class="space-y-6">
-        <!-- Title -->
-        <div>
-          <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
-            排程名稱 <span class="text-red-500">*</span>
-          </label>
-          <input
-            id="title"
-            v-model="form.title"
-            type="text"
-            required
-            maxlength="100"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-            placeholder="例如：每週會議提醒"
-          >
-        </div>
-
-        <!-- Content -->
-        <div>
-          <label for="content" class="block text-sm font-medium text-gray-700 mb-2">
-            訊息內容 <span class="text-red-500">*</span>
-          </label>
-          <textarea
-            id="content"
-            v-model="form.content"
-            required
-            maxlength="2000"
-            rows="4"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none resize-none"
-            placeholder="輸入要發送的訊息內容..."
-          ></textarea>
-          <p class="text-sm text-gray-500 mt-1">{{ form.content.length }} / 2000 字元</p>
-        </div>
-
-        <!-- Channel Selection -->
-        <div>
-          <label for="channelId" class="block text-sm font-medium text-gray-700 mb-2">
-            Discord 頻道 <span class="text-red-500">*</span>
-          </label>
-          <select
-            id="channelId"
-            v-model="form.channelId"
-            required
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-          >
-            <option value="" disabled>選擇頻道</option>
-            <option v-for="channel in channels" :key="channel.id" :value="channel.id">
-              {{ channel.name }}
-            </option>
-          </select>
-        </div>
-
-        <!-- Schedule Type -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            排程類型 <span class="text-red-500">*</span>
-          </label>
-          <div class="grid grid-cols-3 gap-4">
-            <label
-              :class="[
-                'flex items-center justify-center px-4 py-3 border-2 rounded-lg cursor-pointer transition',
-                form.scheduleType === 'once'
-                  ? 'border-indigo-600 bg-indigo-50 text-indigo-600'
-                  : 'border-gray-300 hover:border-gray-400'
-              ]"
-            >
-              <input
-                v-model="form.scheduleType"
-                type="radio"
-                value="once"
-                class="sr-only"
-              >
-              <span class="font-medium">單次執行</span>
-            </label>
-            <label
-              :class="[
-                'flex items-center justify-center px-4 py-3 border-2 rounded-lg cursor-pointer transition',
-                form.scheduleType === 'weekly'
-                  ? 'border-indigo-600 bg-indigo-50 text-indigo-600'
-                  : 'border-gray-300 hover:border-gray-400'
-              ]"
-            >
-              <input
-                v-model="form.scheduleType"
-                type="radio"
-                value="weekly"
-                class="sr-only"
-              >
-              <span class="font-medium">每週重複</span>
-            </label>
-            <label
-              :class="[
-                'flex items-center justify-center px-4 py-3 border-2 rounded-lg cursor-pointer transition',
-                form.scheduleType === 'monthly'
-                  ? 'border-indigo-600 bg-indigo-50 text-indigo-600'
-                  : 'border-gray-300 hover:border-gray-400'
-              ]"
-            >
-              <input
-                v-model="form.scheduleType"
-                type="radio"
-                value="monthly"
-                class="sr-only"
-              >
-              <span class="font-medium">每月重複</span>
-            </label>
+    <form
+      id="schedule-form"
+      @submit.prevent="handleSubmit"
+      class="space-y-6 max-w-6xl mx-auto pb-32"
+    >
+      <!-- 訊息內容區塊 -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+            <i class="bi bi-chat-left-text text-indigo-600 text-2xl"></i>
+          </div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-900">訊息內容</h2>
+            <p class="text-sm text-gray-600">設定要發送的訊息標題和內容</p>
           </div>
         </div>
 
-        <!-- Schedule Date (for once type) -->
-        <div v-if="form.scheduleType === 'once'">
-          <label for="scheduledDate" class="block text-sm font-medium text-gray-700 mb-2">
-            執行日期 <span class="text-red-500">*</span>
-          </label>
-          <input
-            id="scheduledDate"
-            v-model="form.scheduledDate"
-            type="date"
-            required
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-          >
-        </div>
-
-        <!-- Week Day (for weekly type) -->
-        <div v-if="form.scheduleType === 'weekly'">
-          <label for="weekDay" class="block text-sm font-medium text-gray-700 mb-2">
-            星期幾 <span class="text-red-500">*</span>
-          </label>
-          <select
-            id="weekDay"
-            v-model.number="form.weekDay"
-            required
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-          >
-            <option v-for="day in weekDays" :key="day.value" :value="day.value">
-              {{ day.label }}
-            </option>
-          </select>
-        </div>
-
-        <!-- Month Day (for monthly type) -->
-        <div v-if="form.scheduleType === 'monthly'">
-          <label for="monthDay" class="block text-sm font-medium text-gray-700 mb-2">
-            每月幾號 <span class="text-red-500">*</span>
-          </label>
-          <select
-            id="monthDay"
-            v-model.number="form.monthDay"
-            required
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-          >
-            <option v-for="day in 31" :key="day" :value="day">
-              {{ day }} 號
-            </option>
-          </select>
-        </div>
-
-        <!-- Schedule Time -->
-        <div>
-          <label for="scheduledTime" class="block text-sm font-medium text-gray-700 mb-2">
-            執行時間 <span class="text-red-500">*</span>
-          </label>
-          <input
-            id="scheduledTime"
-            v-model="form.scheduledTime"
-            type="time"
-            required
-            step="1"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-          >
-        </div>
-
-        <!-- Timezone -->
-        <div>
-          <label for="timezone" class="block text-sm font-medium text-gray-700 mb-2">
-            時區
-          </label>
-          <select
-            id="timezone"
-            v-model="form.timezone"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none"
-          >
-            <option v-for="tz in timezones" :key="tz.value" :value="tz.value">
-              {{ tz.label }}
-            </option>
-          </select>
-        </div>
-
-        <!-- Status -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            排程狀態
-          </label>
-          <div class="flex gap-4">
-            <label
-              :class="[
-                'flex items-center justify-center px-6 py-3 border-2 rounded-lg cursor-pointer transition flex-1',
-                form.status === 'draft'
-                  ? 'border-gray-600 bg-gray-50 text-gray-600'
-                  : 'border-gray-300 hover:border-gray-400'
-              ]"
-            >
-              <input
-                v-model="form.status"
-                type="radio"
-                value="draft"
-                class="sr-only"
-              >
-              <span class="font-medium">儲存為草稿</span>
+        <div class="space-y-6">
+          <div>
+            <label for="title" class="block text-sm font-semibold text-gray-700 mb-3">
+              排程標題 <span class="text-red-500">*</span>
             </label>
-            <label
-              :class="[
-                'flex items-center justify-center px-6 py-3 border-2 rounded-lg cursor-pointer transition flex-1',
-                form.status === 'active'
-                  ? 'border-green-600 bg-green-50 text-green-600'
-                  : 'border-gray-300 hover:border-gray-400'
-              ]"
-            >
-              <input
-                v-model="form.status"
-                type="radio"
-                value="active"
-                class="sr-only"
-              >
-              <span class="font-medium">立即啟用</span>
+            <input
+              id="title"
+              v-model="form.title"
+              type="text"
+              required
+              maxlength="100"
+              class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-lg"
+              placeholder="例如：每週團隊會議提醒"
+            />
+            <p class="text-sm text-gray-500 mt-2">{{ form.title.length }} / 100 字元</p>
+          </div>
+
+          <div>
+            <label for="content" class="block text-sm font-semibold text-gray-700 mb-3">
+              訊息內容 <span class="text-red-500">*</span>
             </label>
+            <textarea
+              id="content"
+              v-model="form.content"
+              required
+              maxlength="2000"
+              rows="6"
+              class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none resize-none transition"
+              placeholder="輸入要發送到 Discord 的訊息內容..."
+            ></textarea>
+            <p class="text-sm text-gray-500 mt-2">{{ form.content.length }} / 2000 字元</p>
+          </div>
+
+          <!-- Preview Card -->
+          <div
+            v-if="form.title || form.content"
+            class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-100"
+          >
+            <p class="text-sm font-semibold text-indigo-900 mb-3 flex items-center gap-2">
+              <i class="bi bi-eye"></i>
+              訊息預覽
+            </p>
+            <div class="bg-white rounded-lg p-4 shadow-sm">
+              <h3 v-if="form.title" class="font-bold text-gray-900 mb-2">{{ form.title }}</h3>
+              <p v-if="form.content" class="text-gray-700 whitespace-pre-wrap">
+                {{ form.content }}
+              </p>
+              <p v-else class="text-gray-400 italic">訊息內容會顯示在這裡...</p>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Actions -->
-      <div class="flex gap-4 mt-8 pt-6 border-t">
+      <!-- 發送設定區塊 -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+            <i class="bi bi-discord text-purple-600 text-2xl"></i>
+          </div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-900">發送設定</h2>
+            <p class="text-sm text-gray-600">選擇 Discord 頻道和時區</p>
+          </div>
+        </div>
+
+        <div class="space-y-6">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-3">
+              Discord 頻道 <span class="text-red-500">*</span>
+            </label>
+            <div class="relative">
+              <!-- Selected Channel Display / Dropdown Trigger -->
+              <button
+                type="button"
+                @click="isChannelDropdownOpen = !isChannelDropdownOpen"
+                :class="[
+                  'w-full flex items-center justify-between px-4 py-3 border-2 rounded-xl transition-all',
+                  isChannelDropdownOpen
+                    ? 'border-purple-600 ring-2 ring-purple-500'
+                    : selectedChannel
+                      ? 'border-purple-600 bg-purple-50'
+                      : 'border-gray-200 hover:border-gray-300',
+                ]"
+              >
+                <div class="flex items-center gap-3">
+                  <div
+                    :class="[
+                      'w-10 h-10 rounded-full flex items-center justify-center',
+                      selectedChannel ? 'bg-purple-600' : 'bg-gray-200',
+                    ]"
+                  >
+                    <i
+                      :class="[
+                        'bi bi-hash text-xl',
+                        selectedChannel ? 'text-white' : 'text-gray-500',
+                      ]"
+                    ></i>
+                  </div>
+                  <div class="text-left">
+                    <p v-if="selectedChannel" class="font-semibold text-gray-900">
+                      {{ selectedChannel.name }}
+                    </p>
+                    <p v-else class="text-gray-500">請選擇 Discord 頻道</p>
+                    <p v-if="selectedChannel" class="text-sm text-gray-500">
+                      {{ selectedChannel.category }}
+                    </p>
+                  </div>
+                </div>
+                <i
+                  :class="[
+                    'bi text-xl text-gray-500 transition-transform',
+                    isChannelDropdownOpen ? 'bi-chevron-up' : 'bi-chevron-down',
+                  ]"
+                ></i>
+              </button>
+
+              <!-- Dropdown Menu -->
+              <div
+                v-if="isChannelDropdownOpen"
+                class="absolute z-10 w-full mt-2 bg-white border-2 border-purple-600 rounded-xl shadow-xl"
+              >
+                <!-- Search Input -->
+                <div class="p-3 border-b border-gray-200">
+                  <div class="relative">
+                    <i
+                      class="bi bi-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                    ></i>
+                    <input
+                      v-model="channelSearch"
+                      type="text"
+                      placeholder="搜尋頻道或分類..."
+                      class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                      @click.stop
+                    />
+                  </div>
+                </div>
+
+                <!-- Channel List -->
+                <div class="max-h-80 overflow-y-auto">
+                  <div
+                    v-if="Object.keys(groupedChannels).length === 0"
+                    class="p-4 text-center text-gray-500"
+                  >
+                    找不到符合的頻道
+                  </div>
+                  <div v-else>
+                    <div
+                      v-for="(channelList, category) in groupedChannels"
+                      :key="category"
+                      class="border-b border-gray-100 last:border-b-0"
+                    >
+                      <div
+                        class="px-4 py-2 bg-gray-50 text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                      >
+                        {{ category }}
+                      </div>
+                      <button
+                        v-for="channel in channelList"
+                        :key="channel.id"
+                        type="button"
+                        @click="selectChannel(channel.id)"
+                        :class="[
+                          'w-full flex items-center gap-3 px-4 py-3 hover:bg-purple-50 transition cursor-pointer',
+                          form.channelId === channel.id ? 'bg-purple-100' : '',
+                        ]"
+                      >
+                        <div
+                          :class="[
+                            'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
+                            form.channelId === channel.id ? 'bg-purple-600' : 'bg-gray-200',
+                          ]"
+                        >
+                          <i
+                            :class="[
+                              'bi bi-hash',
+                              form.channelId === channel.id ? 'text-white' : 'text-gray-500',
+                            ]"
+                          ></i>
+                        </div>
+                        <div class="flex-1 text-left">
+                          <p class="font-medium text-gray-900">{{ channel.name }}</p>
+                        </div>
+                        <i
+                          v-if="form.channelId === channel.id"
+                          class="bi bi-check-circle-fill text-purple-600"
+                        ></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <label for="timezone" class="block text-sm font-semibold text-gray-700 mb-3">
+              時區設定
+            </label>
+            <select
+              id="timezone"
+              v-model="form.timezone"
+              class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none cursor-pointer transition"
+            >
+              <option v-for="tz in timezones" :key="tz.value" :value="tz.value">
+                {{ tz.label }}
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 排程時間區塊 -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+            <i class="bi bi-calendar-event text-blue-600 text-2xl"></i>
+          </div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-900">排程時間</h2>
+            <p class="text-sm text-gray-600">設定訊息的發送時間規則</p>
+          </div>
+        </div>
+
+        <div class="space-y-6">
+          <!-- Schedule Type -->
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-3">
+              排程類型 <span class="text-red-500">*</span>
+            </label>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <label
+                v-for="type in [
+                  {
+                    value: 'once',
+                    label: '單次執行',
+                    icon: 'bi-calendar-check',
+                    desc: '指定日期執行一次',
+                  },
+                  {
+                    value: 'weekly',
+                    label: '每週重複',
+                    icon: 'bi-arrow-repeat',
+                    desc: '每週固定時間執行',
+                  },
+                  {
+                    value: 'monthly',
+                    label: '每月重複',
+                    icon: 'bi-calendar-month',
+                    desc: '每月固定日期執行',
+                  },
+                ]"
+                :key="type.value"
+                :class="[
+                  'flex items-start p-4 border-2 rounded-xl cursor-pointer transition-all hover:border-blue-300 hover:shadow-md',
+                  form.scheduleType === type.value
+                    ? 'border-blue-600 bg-blue-50 shadow-md'
+                    : 'border-gray-200 hover:bg-gray-50',
+                ]"
+              >
+                <input
+                  v-model="form.scheduleType"
+                  type="radio"
+                  :value="type.value"
+                  class="sr-only"
+                />
+                <i
+                  :class="[
+                    type.icon,
+                    'text-2xl mr-3 mt-1',
+                    form.scheduleType === type.value ? 'text-blue-600' : 'text-gray-400',
+                  ]"
+                ></i>
+                <div class="flex-1">
+                  <p
+                    :class="[
+                      'font-semibold mb-1',
+                      form.scheduleType === type.value ? 'text-blue-600' : 'text-gray-900',
+                    ]"
+                  >
+                    {{ type.label }}
+                  </p>
+                  <p class="text-xs text-gray-500">{{ type.desc }}</p>
+                </div>
+                <i
+                  v-if="form.scheduleType === type.value"
+                  class="bi bi-check-circle-fill text-blue-600 text-lg ml-2"
+                ></i>
+              </label>
+            </div>
+          </div>
+
+          <!-- Date/Day Selection -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div v-if="form.scheduleType === 'once'">
+              <label for="scheduledDate" class="block text-sm font-semibold text-gray-700 mb-3">
+                執行日期 <span class="text-red-500">*</span>
+              </label>
+              <input
+                id="scheduledDate"
+                v-model="form.scheduledDate"
+                type="date"
+                required
+                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none cursor-pointer transition"
+              />
+            </div>
+
+            <div v-if="form.scheduleType === 'weekly'" class="md:col-span-2">
+              <label class="block text-sm font-semibold text-gray-700 mb-3">
+                選擇星期 <span class="text-red-500">*</span>
+              </label>
+              <div class="grid grid-cols-7 gap-2">
+                <label
+                  v-for="day in weekDays"
+                  :key="day.value"
+                  :class="[
+                    'flex flex-col items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-all hover:border-blue-300',
+                    form.weekDay === day.value
+                      ? 'border-blue-600 bg-blue-600 text-white shadow-md'
+                      : 'border-gray-200 hover:bg-gray-50',
+                  ]"
+                >
+                  <input
+                    v-model.number="form.weekDay"
+                    type="radio"
+                    :value="day.value"
+                    class="sr-only"
+                  />
+                  <span class="text-xs mb-1">{{ day.label }}</span>
+                  <span class="text-lg font-bold">{{ day.short }}</span>
+                </label>
+              </div>
+            </div>
+
+            <div v-if="form.scheduleType === 'monthly'">
+              <label for="monthDay" class="block text-sm font-semibold text-gray-700 mb-3">
+                每月幾號 <span class="text-red-500">*</span>
+              </label>
+              <select
+                id="monthDay"
+                v-model.number="form.monthDay"
+                required
+                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none cursor-pointer transition"
+              >
+                <option v-for="day in 31" :key="day" :value="day">每月 {{ day }} 號</option>
+              </select>
+            </div>
+
+            <!-- Time Selection -->
+            <div>
+              <label for="scheduledTime" class="block text-sm font-semibold text-gray-700 mb-3">
+                執行時間 <span class="text-red-500">*</span>
+              </label>
+              <input
+                id="scheduledTime"
+                v-model="form.scheduledTime"
+                type="time"
+                required
+                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none cursor-pointer transition text-lg"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 排程狀態區塊 -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+            <i class="bi bi-toggle-on text-green-600 text-2xl"></i>
+          </div>
+          <div>
+            <h2 class="text-xl font-bold text-gray-900">排程狀態</h2>
+            <p class="text-sm text-gray-600">選擇排程的初始狀態</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <label
+            :class="[
+              'flex items-center p-5 border-2 rounded-xl cursor-pointer transition-all hover:shadow-md',
+              form.status === 'draft'
+                ? 'border-gray-600 bg-gray-50 shadow-md'
+                : 'border-gray-200 hover:bg-gray-50 hover:border-gray-400',
+            ]"
+          >
+            <input v-model="form.status" type="radio" value="draft" class="sr-only" />
+            <div class="flex items-start gap-4 flex-1">
+              <div
+                :class="[
+                  'w-12 h-12 rounded-xl flex items-center justify-center',
+                  form.status === 'draft' ? 'bg-gray-600' : 'bg-gray-200',
+                ]"
+              >
+                <i
+                  :class="[
+                    'bi bi-file-earmark-text text-2xl',
+                    form.status === 'draft' ? 'text-white' : 'text-gray-500',
+                  ]"
+                ></i>
+              </div>
+              <div class="flex-1">
+                <p
+                  :class="[
+                    'font-bold text-lg mb-1',
+                    form.status === 'draft' ? 'text-gray-900' : 'text-gray-700',
+                  ]"
+                >
+                  儲存為草稿
+                </p>
+                <p class="text-sm text-gray-500">稍後再手動啟用排程</p>
+              </div>
+            </div>
+            <i
+              v-if="form.status === 'draft'"
+              class="bi bi-check-circle-fill text-gray-600 text-2xl ml-2"
+            ></i>
+          </label>
+
+          <label
+            :class="[
+              'flex items-center p-5 border-2 rounded-xl cursor-pointer transition-all hover:shadow-md',
+              form.status === 'active'
+                ? 'border-green-600 bg-green-50 shadow-md'
+                : 'border-gray-200 hover:bg-gray-50 hover:border-green-400',
+            ]"
+          >
+            <input v-model="form.status" type="radio" value="active" class="sr-only" />
+            <div class="flex items-start gap-4 flex-1">
+              <div
+                :class="[
+                  'w-12 h-12 rounded-xl flex items-center justify-center',
+                  form.status === 'active' ? 'bg-green-600' : 'bg-gray-200',
+                ]"
+              >
+                <i
+                  :class="[
+                    'bi bi-play-circle-fill text-2xl',
+                    form.status === 'active' ? 'text-white' : 'text-gray-500',
+                  ]"
+                ></i>
+              </div>
+              <div class="flex-1">
+                <p
+                  :class="[
+                    'font-bold text-lg mb-1',
+                    form.status === 'active' ? 'text-gray-900' : 'text-gray-700',
+                  ]"
+                >
+                  立即啟用
+                </p>
+                <p class="text-sm text-gray-500">建立後立即開始自動發送</p>
+              </div>
+            </div>
+            <i
+              v-if="form.status === 'active'"
+              class="bi bi-check-circle-fill text-green-600 text-2xl ml-2"
+            ></i>
+          </label>
+        </div>
+      </div>
+    </form>
+
+    <!-- Submit Actions - Full Width -->
+    <div
+      class="sticky bottom-0 left-0 right-0 -mb-6 -mx-6 bg-white border-t-2 border-gray-200 shadow-2xl z-2"
+    >
+      <div class="max-w-6xl mx-auto px-6 py-6 space-y-3 flex">
         <button
           type="button"
           @click="handleCancel"
-          class="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium cursor-pointer"
+          class="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition font-semibold cursor-pointer"
         >
+          <i class="bi bi-x-circle mr-2"></i>
           取消
         </button>
+
         <button
           type="submit"
-          class="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium cursor-pointer"
+          form="schedule-form"
+          :disabled="!isFormValid()"
+          :class="[
+            'px-8 py-3 rounded-xl font-bold text-lg transition cursor-pointer shadow-lg ml-auto',
+            isFormValid()
+              ? 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-xl'
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed',
+          ]"
         >
+          <i class="bi bi-check-circle-fill mr-2"></i>
           建立排程
         </button>
       </div>
-    </form>
+    </div>
   </div>
 </template>

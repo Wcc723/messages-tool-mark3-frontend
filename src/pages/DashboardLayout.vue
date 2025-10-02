@@ -26,7 +26,7 @@ const handleLogout = () => {
       :class="[
         'fixed top-0 left-0 z-40 h-screen transition-transform',
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
-        'w-64 bg-white shadow-lg'
+        'w-64 bg-white shadow-lg',
       ]"
     >
       <div class="h-full px-3 py-4 overflow-y-auto">
@@ -59,7 +59,7 @@ const handleLogout = () => {
               @click="isUserMenuOpen = !isUserMenuOpen"
               class="flex items-center gap-3 hover:bg-gray-50 rounded-lg px-3 py-2 transition cursor-pointer"
             >
-              <img :src="mockUser.avatar" alt="User" class="w-8 h-8 rounded-full">
+              <img :src="mockUser.avatar" alt="User" class="w-8 h-8 rounded-full" />
               <div class="text-left hidden md:block">
                 <p class="text-sm font-medium text-gray-700">{{ mockUser.name }}</p>
                 <p class="text-xs text-gray-500">{{ mockUser.email }}</p>
@@ -79,7 +79,7 @@ const handleLogout = () => {
               >
                 個人資料
               </router-link>
-              <hr class="my-1">
+              <hr class="my-1" />
               <button
                 @click="handleLogout"
                 class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer"
@@ -92,7 +92,7 @@ const handleLogout = () => {
       </header>
 
       <!-- Page Content -->
-      <main class="p-6">
+      <main class="p-6 relative">
         <router-view />
       </main>
     </div>
