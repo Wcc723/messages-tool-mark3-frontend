@@ -1,11 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 
 const router = useRouter()
-const route = useRoute()
-
-const isEditMode = computed(() => !!route.params.id)
 
 type ScheduleType = 'once' | 'weekly' | 'monthly'
 type ScheduleStatus = 'draft' | 'active'
@@ -57,37 +54,21 @@ const weekDays = [
 ]
 
 onMounted(() => {
-  if (isEditMode.value) {
-    // Mock loading existing schedule data
-    form.value = {
-      title: '每週會議提醒',
-      content: '記得參加今天下午 3 點的團隊會議！',
-      scheduleType: 'weekly',
-      scheduledTime: '14:00:00',
-      scheduledDate: '',
-      weekDay: 1,
-      monthDay: 1,
-      channelId: '123456789',
-      timezone: 'Asia/Taipei',
-      status: 'active',
-    }
-  } else {
-    // Set default date for once type
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    form.value.scheduledDate = tomorrow.toISOString().split('T')[0]
-  }
+  // Set default date for once type
+  const tomorrow = new Date()
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  form.value.scheduledDate = tomorrow.toISOString().split('T')[0]
 })
 
 const handleSubmit = () => {
   // Mock save - no API call
   console.log('Saving schedule:', form.value)
-  alert(isEditMode.value ? '排程已更新！' : '排程已建立！')
-  router.push('/dashboard/schedules')
+  alert('排程已建立！')
+  router.push('/dashboard/schedule/calendar')
 }
 
 const handleCancel = () => {
-  router.push('/dashboard/schedules')
+  router.push('/dashboard/schedule/calendar')
 }
 </script>
 
@@ -95,10 +76,8 @@ const handleCancel = () => {
   <div>
     <!-- Header -->
     <div class="mb-6">
-      <h1 class="text-3xl font-bold text-gray-800 mb-2">
-        {{ isEditMode ? '編輯排程' : '新增排程' }}
-      </h1>
-      <p class="text-gray-600">設定您的 Discord 訊息排程</p>
+      <h1 class="text-3xl font-bold text-gray-800 mb-2">新增排程</h1>
+      <p class="text-gray-600">建立新的 Discord 訊息排程</p>
     </div>
 
     <!-- Form -->
@@ -338,15 +317,15 @@ const handleCancel = () => {
         <button
           type="button"
           @click="handleCancel"
-          class="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
+          class="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium cursor-pointer"
         >
           取消
         </button>
         <button
           type="submit"
-          class="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium"
+          class="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium cursor-pointer"
         >
-          {{ isEditMode ? '更新排程' : '建立排程' }}
+          建立排程
         </button>
       </div>
     </form>

@@ -124,12 +124,10 @@ const handleRefreshBot = () => {
         <h2 class="text-xl font-semibold text-gray-800">Bot 連接狀態</h2>
         <button
           @click="handleRefreshBot"
-          class="p-2 hover:bg-gray-100 rounded-lg transition"
+          class="p-2 hover:bg-gray-100 rounded-lg transition cursor-pointer"
           title="刷新狀態"
         >
-          <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
+          <i class="bi bi-arrow-clockwise text-xl text-gray-600"></i>
         </button>
       </div>
 
@@ -177,7 +175,7 @@ const handleRefreshBot = () => {
             :key="guild.id"
             @click="handleGuildSelect(guild.id)"
             :class="[
-              'w-full flex items-center gap-3 p-4 rounded-lg border-2 transition text-left',
+              'w-full flex items-center gap-3 p-4 rounded-lg border-2 transition text-left cursor-pointer',
               selectedGuildId === guild.id
                 ? 'border-indigo-600 bg-indigo-50'
                 : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
@@ -186,21 +184,16 @@ const handleRefreshBot = () => {
             <div
               class="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-lg"
             >
-              {{ guild.name.charAt(0) }}
+              <i class="bi bi-discord"></i>
             </div>
             <div class="flex-1">
               <h3 class="font-semibold text-gray-800">{{ guild.name }}</h3>
               <p class="text-sm text-gray-500">{{ guild.memberCount }} 位成員</p>
             </div>
-            <svg
+            <i
               v-if="selectedGuildId === guild.id"
-              class="w-6 h-6 text-indigo-600"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
+              class="bi bi-chevron-right text-2xl text-indigo-600"
+            ></i>
           </button>
         </div>
       </div>
@@ -210,9 +203,7 @@ const handleRefreshBot = () => {
         <h2 class="text-xl font-semibold text-gray-800 mb-4">頻道列表</h2>
 
         <div v-if="!selectedGuildId" class="text-center py-12">
-          <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-          </svg>
+          <i class="bi bi-chat-dots text-6xl text-gray-400 mb-4"></i>
           <p class="text-gray-500">請先選擇一個伺服器</p>
         </div>
 
@@ -227,9 +218,7 @@ const handleRefreshBot = () => {
             :key="channel.id"
             class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition"
           >
-            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-            </svg>
+            <i class="bi bi-chat-dots text-xl text-gray-500"></i>
             <div class="flex-1">
               <h3 class="font-medium text-gray-800"># {{ channel.name }}</h3>
               <p class="text-xs text-gray-500">ID: {{ channel.id }}</p>
@@ -240,14 +229,14 @@ const handleRefreshBot = () => {
                 class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded"
                 title="可檢視"
               >
-                👁️
+                <i class="bi bi-eye"></i>
               </span>
               <span
                 v-if="channel.permissions.sendMessages"
                 class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded"
                 title="可發送訊息"
               >
-                💬
+                <i class="bi bi-chat-dots"></i>
               </span>
             </div>
           </div>
@@ -293,7 +282,7 @@ const handleRefreshBot = () => {
 
         <button
           type="submit"
-          class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium"
+          class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium cursor-pointer"
         >
           發送測試訊息
         </button>

@@ -68,7 +68,7 @@ const handleGoogleLogin = () => {
 
         <button
           type="submit"
-          class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition font-medium"
+          class="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition font-medium cursor-pointer"
         >
           {{ isRegisterMode ? '註冊' : '登入' }}
         </button>
@@ -85,7 +85,7 @@ const handleGoogleLogin = () => {
 
       <button
         @click="handleGoogleLogin"
-        class="w-full flex items-center justify-center gap-3 border border-gray-300 py-2 rounded-lg hover:bg-gray-50 transition font-medium"
+        class="w-full flex items-center justify-center gap-3 border border-gray-300 py-2 rounded-lg hover:bg-gray-50 transition font-medium cursor-pointer"
       >
         <svg class="w-5 h-5" viewBox="0 0 24 24">
           <path
@@ -111,7 +111,7 @@ const handleGoogleLogin = () => {
       <div class="mt-6 text-center">
         <button
           @click="isRegisterMode = !isRegisterMode"
-          class="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+          class="text-indigo-600 hover:text-indigo-800 text-sm font-medium cursor-pointer"
         >
           {{ isRegisterMode ? '已有帳號？立即登入' : '沒有帳號？立即註冊' }}
         </button>

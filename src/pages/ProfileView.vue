@@ -78,8 +78,9 @@ const handleCancelPassword = () => {
         <button
           v-if="!isEditingProfile"
           @click="isEditingProfile = true"
-          class="px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition font-medium"
+          class="px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition font-medium cursor-pointer flex items-center gap-2"
         >
+          <i class="bi bi-pencil-square"></i>
           編輯
         </button>
       </div>
@@ -137,13 +138,13 @@ const handleCancelPassword = () => {
           <button
             type="button"
             @click="handleCancelEdit"
-            class="flex-1 px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
+            class="flex-1 px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium cursor-pointer"
           >
             取消
           </button>
           <button
             type="submit"
-            class="flex-1 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium"
+            class="flex-1 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium cursor-pointer"
           >
             儲存變更
           </button>
@@ -186,8 +187,9 @@ const handleCancelPassword = () => {
         <button
           v-if="!isChangingPassword"
           @click="isChangingPassword = true"
-          class="px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition font-medium"
+          class="px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition font-medium cursor-pointer flex items-center gap-2"
         >
+          <i class="bi bi-lock"></i>
           變更密碼
         </button>
       </div>
@@ -241,13 +243,13 @@ const handleCancelPassword = () => {
           <button
             type="button"
             @click="handleCancelPassword"
-            class="flex-1 px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium"
+            class="flex-1 px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-medium cursor-pointer"
           >
             取消
           </button>
           <button
             type="submit"
-            class="flex-1 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium"
+            class="flex-1 px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium cursor-pointer"
           >
             更新密碼
           </button>
@@ -255,9 +257,7 @@ const handleCancelPassword = () => {
       </form>
 
       <div v-else class="text-center py-8 text-gray-500">
-        <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-        </svg>
+        <i class="bi bi-lock text-5xl text-gray-400 mb-3"></i>
         <p>點擊上方按鈕開始變更密碼</p>
       </div>
     </div>
@@ -267,9 +267,10 @@ const handleCancelPassword = () => {
       <h2 class="text-xl font-semibold text-red-800 mb-2">危險區域</h2>
       <p class="text-sm text-red-600 mb-4">以下操作將無法復原，請謹慎操作</p>
       <button
-        class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium"
+        class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium cursor-pointer flex items-center gap-2"
         @click="alert('刪除帳號功能尚未實作')"
       >
+        <i class="bi bi-trash"></i>
         刪除帳號
       </button>
     </div>
