@@ -92,28 +92,31 @@ export const useAuthStore = defineStore('auth', () => {
       const data: GoogleAuthRequest = { googleToken }
       const response = await authService.googleLogin(data)
 
-      if (response.success && response.data) {
-        user.value = response.data.user
-        token.value = response.data.token
-        refreshToken.value = response.data.refreshToken
-
-        // Save to Cookie (7 days expiry)
-        setCookie(COOKIE_NAMES.AUTH_TOKEN, response.data.token, {
-          ...DEFAULT_COOKIE_OPTIONS,
-          expires: 7,
-        })
-        setCookie(COOKIE_NAMES.REFRESH_TOKEN, response.data.refreshToken, {
-          ...DEFAULT_COOKIE_OPTIONS,
-          expires: 30,
-        })
-
-        return true
+      if (!response.success || !response.data) {
+        const message = response.message || 'Google 登入失敗，請稍後再試'
+        error.value = message
+        throw new Error(message)
       }
 
-      return false
+      user.value = response.data.user
+      token.value = response.data.token
+      refreshToken.value = response.data.refreshToken
+
+      // Save to Cookie (7 days expiry)
+      setCookie(COOKIE_NAMES.AUTH_TOKEN, response.data.token, {
+        ...DEFAULT_COOKIE_OPTIONS,
+        expires: 7,
+      })
+      setCookie(COOKIE_NAMES.REFRESH_TOKEN, response.data.refreshToken, {
+        ...DEFAULT_COOKIE_OPTIONS,
+        expires: 30,
+      })
+
+      return true
     } catch (err: any) {
-      error.value = err.message || 'Google 登入失敗，請稍後再試'
-      throw err
+      const message = err?.message || 'Google 登入失敗，請稍後再試'
+      error.value = message
+      throw typeof err === 'object' && err !== null ? err : new Error(message)
     } finally {
       isLoading.value = false
     }

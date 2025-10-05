@@ -66,35 +66,33 @@ const handleGoogleLogin = async (response: GoogleCredentialResponse) => {
   authStore.clearError()
 
   try {
-    await authStore.googleLogin(response.credential)
-    // Success - redirect to dashboard
-    router.push('/dashboard')
+    const isSuccess = await authStore.googleLogin(response.credential)
+
+    if (isSuccess) {
+      router.push('/dashboard')
+    }
   } catch (error: any) {
     console.error('Google login error:', error)
     localError.value = error.message || 'Google 登入失敗'
   }
 }
 
-// Initialize Google Identity Services
-onMounted(() => {
-  if (!googleClientId) {
-    console.warn('VITE_GOOGLE_CLIENT_ID not configured')
+let googleInitialized = false
+
+const initializeGoogleSignIn = () => {
+  if (googleInitialized) return
+
+  if (!window.google?.accounts?.id) {
+    console.error('Google Identity Services SDK not available')
     return
   }
 
-  if (!window.google) {
-    console.error('Google Identity Services SDK not loaded')
-    return
-  }
-
-  // Initialize Google Sign-In
   window.google.accounts.id.initialize({
     client_id: googleClientId,
     callback: handleGoogleLogin,
     auto_select: false,
   })
 
-  // Render Google Sign-In button
   if (googleButtonContainer.value) {
     window.google.accounts.id.renderButton(googleButtonContainer.value, {
       type: 'standard',
@@ -106,6 +104,47 @@ onMounted(() => {
       width: 400,
     })
   }
+
+  googleInitialized = true
+}
+
+// Initialize Google Identity Services
+onMounted(() => {
+  if (!googleClientId) {
+    console.warn('VITE_GOOGLE_CLIENT_ID not configured')
+    localError.value = 'Google 登入尚未設定，請洽系統管理員設定 Client ID'
+    return
+  }
+
+  if (window.google?.accounts?.id) {
+    initializeGoogleSignIn()
+    return
+  }
+
+  const script = document.querySelector<HTMLScriptElement>('script[src="https://accounts.google.com/gsi/client"]')
+
+  if (!script) {
+    console.error('Google Identity Services SDK script tag missing')
+    localError.value = '找不到 Google 登入所需的 SDK'
+    return
+  }
+
+  script.addEventListener(
+    'load',
+    () => {
+      initializeGoogleSignIn()
+    },
+    { once: true },
+  )
+
+  script.addEventListener(
+    'error',
+    () => {
+      console.error('Google Identity Services SDK failed to load')
+      localError.value = 'Google 登入服務載入失敗，請稍後再試'
+    },
+    { once: true },
+  )
 })
 
 // Clear error when switching modes

@@ -1,26 +1,60 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import SidebarNav from '@/components/SidebarNav.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 const isSidebarOpen = ref(true)
 const isUserMenuOpen = ref(false)
+const isCheckingAuth = ref(true)
 
-const mockUser = {
-  name: '測試使用者',
-  email: 'user@example.com',
-  avatar: 'https://ui-avatars.com/api/?name=Test+User&background=4F46E5&color=fff',
+const userProfile = computed(() => authStore.user)
+
+const redirectToLogin = (message: string) => {
+  authStore.clearError()
+  authStore.error = message
+  router.replace({ name: 'Login' })
 }
 
-const handleLogout = () => {
-  router.push('/login')
+const ensureAuthenticated = async () => {
+  isCheckingAuth.value = true
+
+  try {
+    if (!authStore.token) {
+      throw new Error('缺少 token')
+    }
+
+    if (!authStore.user) {
+      await authStore.fetchProfile()
+    }
+
+    if (!authStore.user) {
+      throw new Error('未取得使用者資料')
+    }
+  } catch (error) {
+    console.error('Dashboard auth guard failed:', error)
+    redirectToLogin('請先登入以使用儀表板')
+  } finally {
+    isCheckingAuth.value = false
+  }
+}
+
+onMounted(() => {
+  ensureAuthenticated()
+})
+
+const handleLogout = async () => {
+  isUserMenuOpen.value = false
+  await authStore.logout()
+  redirectToLogin('您已登出，請重新登入')
 }
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-100">
+  <div v-if="!isCheckingAuth" class="min-h-screen bg-gray-100">
     <!-- Sidebar -->
     <aside
       :class="[
@@ -59,10 +93,14 @@ const handleLogout = () => {
               @click="isUserMenuOpen = !isUserMenuOpen"
               class="flex items-center gap-3 hover:bg-gray-50 rounded-lg px-3 py-2 transition cursor-pointer"
             >
-              <img :src="mockUser.avatar" alt="User" class="w-8 h-8 rounded-full" />
+              <img
+                :src="userProfile?.avatar || 'https://ui-avatars.com/api/?name=User&background=4F46E5&color=fff'"
+                alt="User"
+                class="w-8 h-8 rounded-full"
+              />
               <div class="text-left hidden md:block">
-                <p class="text-sm font-medium text-gray-700">{{ mockUser.name }}</p>
-                <p class="text-xs text-gray-500">{{ mockUser.email }}</p>
+                <p class="text-sm font-medium text-gray-700">{{ userProfile?.name || '訪客' }}</p>
+                <p class="text-xs text-gray-500">{{ userProfile?.email || '' }}</p>
               </div>
               <i class="bi bi-chevron-down text-gray-500"></i>
             </button>
@@ -96,5 +134,11 @@ const handleLogout = () => {
         <router-view />
       </main>
     </div>
+  </div>
+  <div
+    v-else
+    class="min-h-screen bg-gray-100 flex items-center justify-center text-gray-600"
+  >
+    驗證登入狀態中...
   </div>
 </template>
