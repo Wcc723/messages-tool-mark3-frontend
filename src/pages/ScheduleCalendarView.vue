@@ -17,6 +17,8 @@ const schedules = computed(() => scheduleStore.schedules)
 
 const currentDate = ref(new Date())
 const selectedDate = ref<Date | null>(null)
+const showScheduleModal = ref(false)
+const modalSchedule = ref<Schedule | null>(null)
 
 // Calendar computation
 const currentYear = computed(() => currentDate.value.getFullYear())
@@ -106,7 +108,20 @@ const nextMonth = () => {
 
 const selectDate = (day: number | null) => {
   if (!day) return
-  selectedDate.value = new Date(currentYear.value, currentMonth.value, day)
+  // 使用當地時區的日期，避免時區問題
+  const year = currentYear.value
+  const month = currentMonth.value
+  selectedDate.value = new Date(year, month, day, 0, 0, 0, 0)
+}
+
+const openScheduleModal = (schedule: Schedule) => {
+  modalSchedule.value = schedule
+  showScheduleModal.value = true
+}
+
+const closeScheduleModal = () => {
+  showScheduleModal.value = false
+  modalSchedule.value = null
 }
 
 const getStatusColor = (status: ScheduleStatus) => {
@@ -155,8 +170,9 @@ const handleEdit = (id: string) => {
 
 const handleDuplicate = async (schedule: Schedule) => {
   try {
-    await scheduleStore.duplicateSchedule(schedule)
-    alert('排程已複製！')
+    const duplicated = await scheduleStore.duplicateSchedule(schedule)
+    // 導向編輯頁面，草稿狀態
+    router.push(`/dashboard/schedule/edit/${duplicated.id}`)
   } catch (error: any) {
     console.error('Failed to duplicate schedule:', error)
     alert(error.response?.data?.message || '複製排程失敗')
@@ -283,7 +299,8 @@ const handleDelete = async (id: string) => {
                 <div
                   v-for="schedule in dayData.schedules.slice(0, 2)"
                   :key="schedule.id"
-                  class="text-xs px-2 py-1 bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-800 rounded-lg truncate font-medium border border-indigo-200"
+                  @click.stop="openScheduleModal(schedule)"
+                  class="text-xs px-2 py-1 bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-800 rounded-lg truncate font-medium border border-indigo-200 cursor-pointer hover:bg-indigo-200 transition-colors"
                   :title="schedule.title"
                 >
                   <i class="bi bi-clock mr-1"></i>{{ schedule.scheduledTime.slice(0, 5) }} {{ schedule.title }}
@@ -468,5 +485,175 @@ const handleDelete = async (id: string) => {
         </div>
       </div>
     </div>
+
+    <!-- Schedule Detail Modal -->
+    <div
+      v-if="showScheduleModal && modalSchedule"
+      @click="closeScheduleModal"
+      class="fixed inset-0 bg-black/20 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-fade-in"
+    >
+      <div
+        @click.stop
+        class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-hidden animate-scale-in border border-gray-100"
+      >
+        <!-- Modal Header -->
+        <div class="bg-gradient-to-r from-indigo-500 to-purple-600 p-8 text-white">
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex-1">
+              <div class="flex items-center gap-3 mb-3">
+                <div class="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                  <i class="bi bi-calendar-event text-2xl"></i>
+                </div>
+                <span :class="[
+                  'px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider',
+                  modalSchedule.status === 'active' ? 'bg-green-400/30 text-green-100 border border-green-300/50' :
+                  modalSchedule.status === 'draft' ? 'bg-gray-400/30 text-gray-100 border border-gray-300/50' :
+                  modalSchedule.status === 'paused' ? 'bg-yellow-400/30 text-yellow-100 border border-yellow-300/50' :
+                  'bg-blue-400/30 text-blue-100 border border-blue-300/50'
+                ]">
+                  {{ getStatusText(modalSchedule.status) }}
+                </span>
+              </div>
+              <h2 class="text-3xl font-bold mb-2 leading-tight">{{ modalSchedule.title }}</h2>
+              <div class="flex items-center gap-4 text-indigo-100">
+                <div class="flex items-center gap-2">
+                  <i class="bi bi-clock-fill"></i>
+                  <span class="font-medium">{{ modalSchedule.scheduledTime }}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <i class="bi bi-arrow-repeat"></i>
+                  <span class="font-medium">{{
+                    modalSchedule.scheduleType === 'once' ? '單次執行' :
+                    modalSchedule.scheduleType === 'weekly' ? '每週重複' : '每月重複'
+                  }}</span>
+                </div>
+              </div>
+            </div>
+            <button
+              @click="closeScheduleModal"
+              class="p-2.5 hover:bg-white/20 rounded-xl transition-colors"
+            >
+              <i class="bi bi-x-lg text-2xl"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="p-8 space-y-6 overflow-y-auto max-h-[calc(85vh-280px)]">
+          <!-- Content -->
+          <div>
+            <div class="flex items-center gap-2 mb-3">
+              <div class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+                <i class="bi bi-chat-left-text text-indigo-600"></i>
+              </div>
+              <h3 class="text-lg font-bold text-gray-900">訊息內容</h3>
+            </div>
+            <div class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 border border-gray-200">
+              <p class="text-gray-800 whitespace-pre-wrap leading-relaxed text-base">{{ modalSchedule.content }}</p>
+            </div>
+          </div>
+
+          <!-- Schedule Details -->
+          <div>
+            <div class="flex items-center gap-2 mb-4">
+              <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                <i class="bi bi-info-circle text-purple-600"></i>
+              </div>
+              <h3 class="text-lg font-bold text-gray-900">排程資訊</h3>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-5 border-2 border-blue-200 hover:border-blue-300 transition-colors">
+                <div class="flex items-center gap-2 mb-2">
+                  <i class="bi bi-arrow-repeat text-blue-600 text-xl"></i>
+                  <p class="text-xs text-blue-700 font-bold uppercase tracking-wider">類型</p>
+                </div>
+                <p class="text-lg font-bold text-gray-900">
+                  {{
+                    modalSchedule.scheduleType === 'once' ? '單次執行' :
+                    modalSchedule.scheduleType === 'weekly' ? '每週重複' : '每月重複'
+                  }}
+                </p>
+              </div>
+              <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-5 border-2 border-purple-200 hover:border-purple-300 transition-colors">
+                <div class="flex items-center gap-2 mb-2">
+                  <i class="bi bi-clock-fill text-purple-600 text-xl"></i>
+                  <p class="text-xs text-purple-700 font-bold uppercase tracking-wider">時間</p>
+                </div>
+                <p class="text-lg font-bold text-gray-900">{{ modalSchedule.scheduledTime }}</p>
+              </div>
+              <div v-if="modalSchedule.scheduledDate" class="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-5 border-2 border-green-200 hover:border-green-300 transition-colors">
+                <div class="flex items-center gap-2 mb-2">
+                  <i class="bi bi-calendar-check text-green-600 text-xl"></i>
+                  <p class="text-xs text-green-700 font-bold uppercase tracking-wider">日期</p>
+                </div>
+                <p class="text-lg font-bold text-gray-900">{{ modalSchedule.scheduledDate }}</p>
+              </div>
+              <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-2xl p-5 border-2 border-indigo-200 hover:border-indigo-300 transition-colors">
+                <div class="flex items-center gap-2 mb-2">
+                  <i class="bi bi-hash text-indigo-600 text-xl"></i>
+                  <p class="text-xs text-indigo-700 font-bold uppercase tracking-wider">頻道</p>
+                </div>
+                <p class="text-sm font-bold text-gray-900 truncate">{{ modalSchedule.channelId }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Footer -->
+        <div class="sticky bottom-0 bg-white border-t border-gray-200 p-6 flex gap-3">
+          <button
+            @click="handleEdit(modalSchedule.id)"
+            class="flex-1 px-6 py-4 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-2xl hover:from-indigo-700 hover:to-indigo-800 transition-all font-bold flex items-center justify-center gap-3 shadow-lg hover:shadow-xl group"
+          >
+            <i class="bi bi-pencil-square text-xl group-hover:scale-110 transition-transform"></i>
+            <span>編輯</span>
+          </button>
+          <button
+            @click="handleDuplicate(modalSchedule); closeScheduleModal()"
+            class="flex-1 px-6 py-4 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-2xl hover:from-green-700 hover:to-green-800 transition-all font-bold flex items-center justify-center gap-3 shadow-lg hover:shadow-xl group"
+          >
+            <i class="bi bi-files text-xl group-hover:scale-110 transition-transform"></i>
+            <span>複製</span>
+          </button>
+          <button
+            @click="handleDelete(modalSchedule.id); closeScheduleModal()"
+            class="flex-1 px-6 py-4 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-2xl hover:from-red-700 hover:to-red-800 transition-all font-bold flex items-center justify-center gap-3 shadow-lg hover:shadow-xl group"
+          >
+            <i class="bi bi-trash text-xl group-hover:scale-110 transition-transform"></i>
+            <span>刪除</span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
+
+<style scoped>
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-scale-in {
+  animation: scale-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+</style>

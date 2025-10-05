@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useDiscordStore } from '@/stores/discord'
 import { useScheduleStore } from '@/stores/schedule'
 import type { ScheduleType, Timezone } from '@/services/api'
+import { marked } from 'marked'
 
 const router = useRouter()
 const route = useRoute()
@@ -11,6 +12,12 @@ const discordStore = useDiscordStore()
 const scheduleStore = useScheduleStore()
 
 type ScheduleStatus = 'draft' | 'active'
+
+// Configure marked
+marked.setOptions({
+  breaks: true, // 支援換行
+  gfm: true, // GitHub Flavored Markdown
+})
 
 // Edit mode
 const scheduleId = computed(() => route.params.id as string | undefined)
@@ -37,6 +44,12 @@ const form = ref({
 
 // Data from stores
 const timezones = computed(() => scheduleStore.timezones)
+
+// Markdown preview
+const contentPreviewHtml = computed(() => {
+  if (!form.value.content) return ''
+  return marked(form.value.content)
+})
 
 const weekDays = [
   { value: 1, label: '週一', short: '一' },
@@ -91,6 +104,13 @@ onMounted(async () => {
       tomorrow.setDate(tomorrow.getDate() + 1)
       const dateStr = tomorrow.toISOString().split('T')[0]
       form.value.scheduledDate = dateStr || ''
+
+      // Set default time to current time + 10 minutes
+      const now = new Date()
+      now.setMinutes(now.getMinutes() + 10)
+      const hours = String(now.getHours()).padStart(2, '0')
+      const minutes = String(now.getMinutes()).padStart(2, '0')
+      form.value.scheduledTime = `${hours}:${minutes}`
     }
   } catch (error: any) {
     console.error('Failed to load initial data:', error)
@@ -262,13 +282,15 @@ const isFormValid = () => {
           >
             <p class="text-sm font-semibold text-indigo-900 mb-3 flex items-center gap-2">
               <i class="bi bi-eye"></i>
-              訊息預覽
+              訊息預覽 (支援 Markdown)
             </p>
             <div class="bg-white rounded-lg p-4 shadow-sm">
               <h3 v-if="form.title" class="font-bold text-gray-900 mb-2">{{ form.title }}</h3>
-              <p v-if="form.content" class="text-gray-700 whitespace-pre-wrap">
-                {{ form.content }}
-              </p>
+              <div
+                v-if="form.content"
+                class="markdown-preview text-gray-700"
+                v-html="contentPreviewHtml"
+              ></div>
               <p v-else class="text-gray-400 italic">訊息內容會顯示在這裡...</p>
             </div>
           </div>
@@ -717,3 +739,120 @@ const isFormValid = () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.markdown-preview {
+  line-height: 1.6;
+}
+
+.markdown-preview :deep(h1) {
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin-top: 1rem;
+  margin-bottom: 0.75rem;
+  color: #1f2937;
+}
+
+.markdown-preview :deep(h2) {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-top: 0.875rem;
+  margin-bottom: 0.625rem;
+  color: #374151;
+}
+
+.markdown-preview :deep(h3) {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 0.75rem;
+  margin-bottom: 0.5rem;
+  color: #4b5563;
+}
+
+.markdown-preview :deep(h4) {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-top: 0.625rem;
+  margin-bottom: 0.5rem;
+  color: #6b7280;
+}
+
+.markdown-preview :deep(p) {
+  margin-bottom: 0.75rem;
+}
+
+.markdown-preview :deep(strong) {
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.markdown-preview :deep(em) {
+  font-style: italic;
+}
+
+.markdown-preview :deep(ul),
+.markdown-preview :deep(ol) {
+  margin-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.markdown-preview :deep(ul) {
+  list-style-type: disc;
+}
+
+.markdown-preview :deep(ol) {
+  list-style-type: decimal;
+}
+
+.markdown-preview :deep(li) {
+  margin-bottom: 0.375rem;
+}
+
+.markdown-preview :deep(blockquote) {
+  border-left: 4px solid #6366f1;
+  padding-left: 1rem;
+  margin: 0.75rem 0;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.markdown-preview :deep(code) {
+  background-color: #f3f4f6;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-family: ui-monospace, monospace;
+  font-size: 0.875rem;
+  color: #dc2626;
+}
+
+.markdown-preview :deep(pre) {
+  background-color: #1f2937;
+  color: #f9fafb;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin-bottom: 0.75rem;
+}
+
+.markdown-preview :deep(pre code) {
+  background-color: transparent;
+  padding: 0;
+  color: inherit;
+  font-size: 0.875rem;
+}
+
+.markdown-preview :deep(a) {
+  color: #6366f1;
+  text-decoration: underline;
+}
+
+.markdown-preview :deep(a:hover) {
+  color: #4f46e5;
+}
+
+.markdown-preview :deep(hr) {
+  border: none;
+  border-top: 2px solid #e5e7eb;
+  margin: 1.5rem 0;
+}
+</style>
