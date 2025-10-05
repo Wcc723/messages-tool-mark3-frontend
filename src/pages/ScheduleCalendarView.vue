@@ -1,64 +1,19 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useScheduleStore } from '@/stores/schedule'
+import type { Schedule, ScheduleStatus, ScheduleType } from '@/services/api'
 
 const router = useRouter()
+const scheduleStore = useScheduleStore()
 
 type ViewMode = 'calendar' | 'list'
-type ScheduleStatus = 'draft' | 'active' | 'paused' | 'completed'
-type ScheduleType = 'once' | 'weekly' | 'monthly'
-
-interface Schedule {
-  id: string
-  title: string
-  content: string
-  scheduleType: ScheduleType
-  scheduledTime: string
-  scheduledDate?: string
-  channelId: string
-  status: ScheduleStatus
-  nextExecutionAt?: string
-  lastExecutedAt?: string
-}
 
 // View mode toggle
 const viewMode = ref<ViewMode>('calendar')
 
-// Mock data with dates
-const schedules = ref<Schedule[]>([
-  {
-    id: '1',
-    title: '每週會議提醒',
-    content: '記得參加今天下午 3 點的團隊會議！',
-    scheduleType: 'weekly',
-    scheduledTime: '14:00:00',
-    scheduledDate: '2025-10-08',
-    channelId: '123456789',
-    status: 'active',
-    nextExecutionAt: '2025-10-08T14:00:00Z',
-  },
-  {
-    id: '2',
-    title: '月初報告提醒',
-    content: '請在本週五前繳交月報',
-    scheduleType: 'monthly',
-    scheduledTime: '09:00:00',
-    scheduledDate: '2025-10-01',
-    channelId: '987654321',
-    status: 'active',
-    nextExecutionAt: '2025-11-01T09:00:00Z',
-  },
-  {
-    id: '3',
-    title: '活動通知',
-    content: '下週將舉辦線上活動，敬請期待！',
-    scheduleType: 'once',
-    scheduledTime: '10:00:00',
-    scheduledDate: '2025-10-15',
-    channelId: '456789123',
-    status: 'active',
-  },
-])
+// Get schedules from store
+const schedules = computed(() => scheduleStore.schedules)
 
 const currentDate = ref(new Date())
 const selectedDate = ref<Date | null>(null)
@@ -92,7 +47,28 @@ const calendarDays = computed(() => {
   // Add days of the month
   for (let day = 1; day <= totalDays; day++) {
     const dateStr = `${currentYear.value}-${String(currentMonth.value + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    const daySchedules = schedules.value.filter((s) => s.scheduledDate === dateStr)
+
+    // Filter schedules for this day
+    const daySchedules = schedules.value.filter((s) => {
+      // once type: match scheduledDate
+      if (s.scheduleType === 'once') {
+        return s.scheduledDate === dateStr
+      }
+
+      // weekly type: match weekDay
+      if (s.scheduleType === 'weekly') {
+        const date = new Date(currentYear.value, currentMonth.value, day)
+        return date.getDay() === s.weekDay
+      }
+
+      // monthly type: match monthDay
+      if (s.scheduleType === 'monthly') {
+        return s.monthDay === day
+      }
+
+      return false
+    })
+
     days.push({ day, schedules: daySchedules })
   }
 
@@ -101,8 +77,23 @@ const calendarDays = computed(() => {
 
 const selectedDateSchedules = computed(() => {
   if (!selectedDate.value) return []
+
   const dateStr = selectedDate.value.toISOString().split('T')[0]
-  return schedules.value.filter((s) => s.scheduledDate === dateStr)
+  const day = selectedDate.value.getDate()
+  const weekDay = selectedDate.value.getDay()
+
+  return schedules.value.filter((s) => {
+    if (s.scheduleType === 'once') {
+      return s.scheduledDate === dateStr
+    }
+    if (s.scheduleType === 'weekly') {
+      return s.weekDay === weekDay
+    }
+    if (s.scheduleType === 'monthly') {
+      return s.monthDay === day
+    }
+    return false
+  })
 })
 
 const previousMonth = () => {
@@ -138,26 +129,48 @@ const getStatusText = (status: ScheduleStatus) => {
   return texts[status]
 }
 
+// Load schedules on mount
+onMounted(async () => {
+  try {
+    await scheduleStore.fetchSchedules()
+  } catch (error: any) {
+    console.error('Failed to load schedules:', error)
+    alert(error.response?.data?.message || '載入排程失敗')
+  }
+})
+
+// Reload schedules when month changes
+watch([currentYear, currentMonth], async () => {
+  try {
+    await scheduleStore.fetchSchedules()
+  } catch (error: any) {
+    console.error('Failed to reload schedules:', error)
+  }
+})
+
+// CRUD operations
 const handleEdit = (id: string) => {
-  // Navigate to edit (using create view with id)
   router.push(`/dashboard/schedule/edit/${id}`)
 }
 
-const handleDuplicate = (schedule: Schedule) => {
-  // Mock duplicate
-  const newSchedule = {
-    ...schedule,
-    id: String(Date.now()),
-    title: `${schedule.title} (複本)`,
-    status: 'draft' as ScheduleStatus,
+const handleDuplicate = async (schedule: Schedule) => {
+  try {
+    await scheduleStore.duplicateSchedule(schedule)
+    alert('排程已複製！')
+  } catch (error: any) {
+    console.error('Failed to duplicate schedule:', error)
+    alert(error.response?.data?.message || '複製排程失敗')
   }
-  schedules.value.push(newSchedule)
-  alert('排程已複製！')
 }
 
-const handleDelete = (id: string) => {
-  if (confirm('確定要刪除此排程嗎？')) {
-    schedules.value = schedules.value.filter((s) => s.id !== id)
+const handleDelete = async (id: string) => {
+  if (!confirm('確定要刪除此排程嗎？')) return
+
+  try {
+    await scheduleStore.deleteSchedule(id)
+  } catch (error: any) {
+    console.error('Failed to delete schedule:', error)
+    alert(error.response?.data?.message || '刪除排程失敗')
   }
 }
 </script>

@@ -1,14 +1,14 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import { authService } from '@/services/auth'
-import type { User, LoginRequest, RegisterRequest, GoogleAuthRequest } from '@/types/api'
+import { authApi } from '@/services/api'
+import type { User, LoginRequest, RegisterRequest } from '@/services/api'
 import { getCookie, setCookie, removeCookie, COOKIE_NAMES, DEFAULT_COOKIE_OPTIONS } from '@/utils/cookies'
 
 export const useAuthStore = defineStore('auth', () => {
   // State
   const user = ref<User | null>(null)
   const token = ref<string | null>(getCookie(COOKIE_NAMES.AUTH_TOKEN))
-  const refreshToken = ref<string | null>(getCookie(COOKIE_NAMES.REFRESH_TOKEN))
+  const refreshTokenValue = ref<string | null>(getCookie(COOKIE_NAMES.REFRESH_TOKEN))
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
@@ -21,12 +21,12 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      const response = await authService.login(credentials)
+      const response = await authApi.login(credentials)
 
       if (response.success && response.data) {
         user.value = response.data.user
         token.value = response.data.token
-        refreshToken.value = response.data.refreshToken
+        refreshTokenValue.value = response.data.refreshToken
 
         // Save to Cookie (7 days expiry)
         setCookie(COOKIE_NAMES.AUTH_TOKEN, response.data.token, {
@@ -55,12 +55,12 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      const response = await authService.register(data)
+      const response = await authApi.register(data)
 
       if (response.success && response.data) {
         user.value = response.data.user
         token.value = response.data.token
-        refreshToken.value = response.data.refreshToken
+        refreshTokenValue.value = response.data.refreshToken
 
         // Save to Cookie (7 days expiry)
         setCookie(COOKIE_NAMES.AUTH_TOKEN, response.data.token, {
@@ -89,8 +89,7 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      const data: GoogleAuthRequest = { googleToken }
-      const response = await authService.googleLogin(data)
+      const response = await authApi.loginWithGoogle(googleToken)
 
       if (!response.success || !response.data) {
         const message = response.message || 'Google 登入失敗，請稍後再試'
@@ -100,7 +99,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       user.value = response.data.user
       token.value = response.data.token
-      refreshToken.value = response.data.refreshToken
+      refreshTokenValue.value = response.data.refreshToken
 
       // Save to Cookie (7 days expiry)
       setCookie(COOKIE_NAMES.AUTH_TOKEN, response.data.token, {
@@ -127,7 +126,7 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      await authService.logout()
+      await authApi.logout()
     } catch (err) {
       // Even if API call fails, still clear local state
       console.error('Logout API call failed:', err)
@@ -135,7 +134,7 @@ export const useAuthStore = defineStore('auth', () => {
       // Clear state
       user.value = null
       token.value = null
-      refreshToken.value = null
+      refreshTokenValue.value = null
 
       // Clear Cookies
       removeCookie(COOKIE_NAMES.AUTH_TOKEN, DEFAULT_COOKIE_OPTIONS)
@@ -152,14 +151,9 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      const response = await authService.getProfile()
-
-      if (response.success && response.data) {
-        user.value = response.data
-        return true
-      }
-
-      return false
+      const userData = await authApi.getProfile()
+      user.value = userData
+      return true
     } catch (err: any) {
       error.value = err.message || '取得使用者資料失敗'
       // If unauthorized, clear auth state
@@ -172,6 +166,34 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function refreshAuthToken(): Promise<string | null> {
+    try {
+      const response = await authApi.refreshToken()
+
+      if (response.success && response.data) {
+        token.value = response.data.token
+        refreshTokenValue.value = response.data.refreshToken
+
+        // Update cookies
+        setCookie(COOKIE_NAMES.AUTH_TOKEN, response.data.token, {
+          ...DEFAULT_COOKIE_OPTIONS,
+          expires: 7,
+        })
+        setCookie(COOKIE_NAMES.REFRESH_TOKEN, response.data.refreshToken, {
+          ...DEFAULT_COOKIE_OPTIONS,
+          expires: 30,
+        })
+
+        return response.data.token
+      }
+
+      return null
+    } catch (err) {
+      console.error('Token refresh failed:', err)
+      return null
+    }
+  }
+
   function clearError() {
     error.value = null
   }
@@ -180,7 +202,7 @@ export const useAuthStore = defineStore('auth', () => {
     // State
     user,
     token,
-    refreshToken,
+    refreshToken: refreshTokenValue,
     isLoading,
     error,
     // Getters
@@ -191,6 +213,7 @@ export const useAuthStore = defineStore('auth', () => {
     googleLogin,
     logout,
     fetchProfile,
+    refreshAuthToken,
     clearError,
   }
 })

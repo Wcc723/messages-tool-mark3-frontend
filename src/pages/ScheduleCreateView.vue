@@ -1,21 +1,25 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
+import { useDiscordStore } from '@/stores/discord'
+import { useScheduleStore } from '@/stores/schedule'
+import type { ScheduleType, Timezone } from '@/services/api'
 
 const router = useRouter()
+const route = useRoute()
+const discordStore = useDiscordStore()
+const scheduleStore = useScheduleStore()
 
-type ScheduleType = 'once' | 'weekly' | 'monthly'
 type ScheduleStatus = 'draft' | 'active'
 
-interface Channel {
-  id: string
-  name: string
-  category?: string
-}
+// Edit mode
+const scheduleId = computed(() => route.params.id as string | undefined)
+const isEditMode = computed(() => !!scheduleId.value)
 
-// Channel search
+// UI State
 const channelSearch = ref('')
 const isChannelDropdownOpen = ref(false)
+const isSubmitting = ref(false)
 
 // Form data
 const form = ref({
@@ -31,22 +35,8 @@ const form = ref({
   status: 'draft' as ScheduleStatus,
 })
 
-// Mock channels data with categories
-const channels = ref<Channel[]>([
-  { id: '123456789', name: 'general', category: '文字頻道' },
-  { id: '987654321', name: 'announcements', category: '文字頻道' },
-  { id: '456789123', name: 'development', category: '開發頻道' },
-  { id: '789123456', name: 'testing', category: '開發頻道' },
-])
-
-const timezones = [
-  { value: 'Asia/Taipei', label: '台北 (UTC+8)', offset: '+8' },
-  { value: 'Asia/Tokyo', label: '東京 (UTC+9)', offset: '+9' },
-  { value: 'Asia/Shanghai', label: '上海 (UTC+8)', offset: '+8' },
-  { value: 'UTC', label: 'UTC (UTC+0)', offset: '+0' },
-  { value: 'America/New_York', label: '紐約 (UTC-5)', offset: '-5' },
-  { value: 'Europe/London', label: '倫敦 (UTC+0)', offset: '+0' },
-]
+// Data from stores
+const timezones = computed(() => scheduleStore.timezones)
 
 const weekDays = [
   { value: 1, label: '週一', short: '一' },
@@ -60,20 +50,16 @@ const weekDays = [
 
 // Computed filtered channels
 const filteredChannels = computed(() => {
-  if (!channelSearch.value) return channels.value
+  if (!channelSearch.value) return discordStore.textChannels
   const search = channelSearch.value.toLowerCase()
-  return channels.value.filter(
-    (channel) =>
-      channel.name.toLowerCase().includes(search) ||
-      channel.category?.toLowerCase().includes(search),
-  )
+  return discordStore.textChannels.filter((channel) => channel.name.toLowerCase().includes(search))
 })
 
 // Grouped channels by category
 const groupedChannels = computed(() => {
-  const groups: Record<string, Channel[]> = {}
+  const groups: Record<string, typeof discordStore.textChannels> = {}
   filteredChannels.value.forEach((channel) => {
-    const category = channel.category || '未分類'
+    const category = channel.parentId || '未分類'
     if (!groups[category]) groups[category] = []
     groups[category].push(channel)
   })
@@ -81,7 +67,7 @@ const groupedChannels = computed(() => {
 })
 
 const selectedChannel = computed(() => {
-  return channels.value.find((c) => c.id === form.value.channelId)
+  return discordStore.channels.find((c) => c.id === form.value.channelId)
 })
 
 const selectChannel = (channelId: string) => {
@@ -90,16 +76,100 @@ const selectChannel = (channelId: string) => {
   channelSearch.value = ''
 }
 
-onMounted(() => {
-  const tomorrow = new Date()
-  tomorrow.setDate(tomorrow.getDate() + 1)
-  form.value.scheduledDate = tomorrow.toISOString().split('T')[0]
+// Load initial data
+onMounted(async () => {
+  try {
+    // Load channels and timezones in parallel
+    await Promise.all([discordStore.fetchChannels(), scheduleStore.fetchTimezones()])
+
+    // Edit mode: load existing schedule
+    if (isEditMode.value && scheduleId.value) {
+      await loadSchedule(scheduleId.value)
+    } else {
+      // Create mode: set default date to tomorrow
+      const tomorrow = new Date()
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      const dateStr = tomorrow.toISOString().split('T')[0]
+      form.value.scheduledDate = dateStr || ''
+    }
+  } catch (error: any) {
+    console.error('Failed to load initial data:', error)
+    alert(error.response?.data?.message || '載入資料失敗')
+  }
 })
 
-const handleSubmit = () => {
-  console.log('Saving schedule:', form.value)
-  alert('排程已建立！')
-  router.push('/dashboard/schedule/calendar')
+// Load schedule for editing
+async function loadSchedule(id: string) {
+  try {
+    const schedule = await scheduleStore.fetchScheduleById(id)
+
+    form.value = {
+      title: schedule.title,
+      content: schedule.content,
+      scheduleType: schedule.scheduleType,
+      scheduledTime: schedule.scheduledTime.substring(0, 5), // HH:mm:ss -> HH:mm
+      scheduledDate: schedule.scheduledDate || '',
+      weekDay: schedule.weekDay || 1,
+      monthDay: schedule.monthDay || 1,
+      channelId: schedule.channelId,
+      timezone: schedule.timezone,
+      status: schedule.status as ScheduleStatus,
+    }
+  } catch (error: any) {
+    console.error('Failed to load schedule:', error)
+    alert(error.response?.data?.message || '載入排程失敗')
+    router.push('/dashboard/schedule/calendar')
+  }
+}
+
+// Build request payload
+function buildPayload() {
+  const payload: any = {
+    title: form.value.title,
+    content: form.value.content,
+    scheduleType: form.value.scheduleType,
+    scheduledTime: `${form.value.scheduledTime}:00`, // HH:mm -> HH:mm:ss
+    channelId: form.value.channelId,
+    timezone: form.value.timezone,
+    status: form.value.status,
+  }
+
+  // Add type-specific fields
+  if (form.value.scheduleType === 'once') {
+    payload.scheduledDate = form.value.scheduledDate
+  } else if (form.value.scheduleType === 'weekly') {
+    payload.weekDay = form.value.weekDay
+  } else if (form.value.scheduleType === 'monthly') {
+    payload.monthDay = form.value.monthDay
+  }
+
+  return payload
+}
+
+// Handle form submission
+async function handleSubmit() {
+  if (!isFormValid()) return
+
+  isSubmitting.value = true
+
+  try {
+    const payload = buildPayload()
+
+    if (isEditMode.value && scheduleId.value) {
+      await scheduleStore.updateSchedule(scheduleId.value, payload)
+      alert('排程已更新！')
+    } else {
+      await scheduleStore.createSchedule(payload)
+      alert('排程已建立！')
+    }
+
+    router.push('/dashboard/schedule/calendar')
+  } catch (error: any) {
+    console.error('Failed to save schedule:', error)
+    alert(error.response?.data?.message || '操作失敗')
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
 const handleCancel = () => {
@@ -121,7 +191,9 @@ const isFormValid = () => {
       <!-- Header -->
       <div class="flex items-center justify-between mb-8">
         <div>
-          <h1 class="text-3xl font-bold text-gray-900 mb-2">建立新排程</h1>
+          <h1 class="text-3xl font-bold text-gray-900 mb-2">
+            {{ isEditMode ? '編輯排程' : '建立新排程' }}
+          </h1>
           <p class="text-gray-600">設定您的 Discord 訊息排程</p>
         </div>
         <button
@@ -254,7 +326,7 @@ const isFormValid = () => {
                     </p>
                     <p v-else class="text-gray-500">請選擇 Discord 頻道</p>
                     <p v-if="selectedChannel" class="text-sm text-gray-500">
-                      {{ selectedChannel.category }}
+                      ID: {{ selectedChannel.id }}
                     </p>
                   </div>
                 </div>
@@ -629,16 +701,17 @@ const isFormValid = () => {
         <button
           type="submit"
           form="schedule-form"
-          :disabled="!isFormValid()"
+          :disabled="!isFormValid() || isSubmitting"
           :class="[
-            'px-8 py-3 rounded-xl font-bold text-lg transition cursor-pointer shadow-lg ml-auto',
-            isFormValid()
-              ? 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-xl'
+            'px-8 py-3 rounded-xl font-bold text-lg transition shadow-lg ml-auto',
+            isFormValid() && !isSubmitting
+              ? 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-xl cursor-pointer'
               : 'bg-gray-300 text-gray-500 cursor-not-allowed',
           ]"
         >
-          <i class="bi bi-check-circle-fill mr-2"></i>
-          建立排程
+          <i v-if="isSubmitting" class="bi bi-hourglass-split mr-2"></i>
+          <i v-else class="bi bi-check-circle-fill mr-2"></i>
+          {{ isSubmitting ? (isEditMode ? '更新中...' : '建立中...') : (isEditMode ? '更新排程' : '建立排程') }}
         </button>
       </div>
     </div>
