@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 import { useScheduleStore } from '@/stores/schedule'
-import type { Schedule, ScheduleStatus, ScheduleType } from '@/services/api'
+import { useDiscordStore } from '@/stores/discord'
+import type { Schedule, ScheduleStatus } from '@/services/api'
 
 const router = useRouter()
 const scheduleStore = useScheduleStore()
+const discordStore = useDiscordStore()
+const { channels } = storeToRefs(discordStore)
 
 type ViewMode = 'calendar' | 'list'
 
@@ -19,6 +23,27 @@ const currentDate = ref(new Date())
 const selectedDate = ref<Date | null>(null)
 const showScheduleModal = ref(false)
 const modalSchedule = ref<Schedule | null>(null)
+
+const formatLocalDate = (date: Date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const isSelectedDay = (day: number | null) => {
+  if (!day || !selectedDate.value) return false
+  return (
+    selectedDate.value.getFullYear() === currentYear.value &&
+    selectedDate.value.getMonth() === currentMonth.value &&
+    selectedDate.value.getDate() === day
+  )
+}
+
+const getChannelName = (channelId: string) => {
+  const channel = discordStore.getChannelById(channelId)
+  return channel ? `#${channel.name}` : channelId
+}
 
 // Calendar computation
 const currentYear = computed(() => currentDate.value.getFullYear())
@@ -80,7 +105,7 @@ const calendarDays = computed(() => {
 const selectedDateSchedules = computed(() => {
   if (!selectedDate.value) return []
 
-  const dateStr = selectedDate.value.toISOString().split('T')[0]
+  const dateStr = formatLocalDate(selectedDate.value)
   const day = selectedDate.value.getDate()
   const weekDay = selectedDate.value.getDay()
 
@@ -152,6 +177,14 @@ onMounted(async () => {
     console.error('Failed to load schedules:', error)
     alert(error.response?.data?.message || '載入排程失敗')
   }
+
+  if (!channels.value.length) {
+    try {
+      await discordStore.fetchChannels()
+    } catch (error: any) {
+      console.error('Failed to load Discord channels:', error)
+    }
+  }
 })
 
 // Reload schedules when month changes
@@ -200,16 +233,16 @@ const handleDelete = async (id: string) => {
     </div>
 
     <!-- View Toggle & Actions -->
-    <div class="bg-white rounded-2xl shadow-sm border-2 border-gray-200 p-6 mb-8">
-      <div class="flex items-center justify-between">
-        <div class="flex gap-3">
+    <div class="bg-white rounded-lg border border-gray-200 p-4 mb-8">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex gap-2">
           <button
             @click="viewMode = 'calendar'"
             :class="[
-              'px-6 py-3 rounded-xl font-semibold transition-all cursor-pointer',
+              'px-4 py-2 rounded-md font-medium transition-colors cursor-pointer border',
               viewMode === 'calendar'
-                ? 'bg-indigo-600 text-white shadow-lg hover:bg-indigo-700'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md'
+                ? 'bg-gray-900 text-white border-gray-900'
+                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'
             ]"
           >
             <i class="bi bi-calendar3 mr-2"></i>
@@ -218,10 +251,10 @@ const handleDelete = async (id: string) => {
           <button
             @click="viewMode = 'list'"
             :class="[
-              'px-6 py-3 rounded-xl font-semibold transition-all cursor-pointer',
+              'px-4 py-2 rounded-md font-medium transition-colors cursor-pointer border',
               viewMode === 'list'
-                ? 'bg-indigo-600 text-white shadow-lg hover:bg-indigo-700'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md'
+                ? 'bg-gray-900 text-white border-gray-900'
+                : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-100'
             ]"
           >
             <i class="bi bi-list-ul mr-2"></i>
@@ -231,7 +264,7 @@ const handleDelete = async (id: string) => {
 
         <button
           @click="router.push('/dashboard/schedule/new')"
-          class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all font-semibold shadow-lg hover:shadow-xl cursor-pointer"
+          class="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors font-medium cursor-pointer"
         >
           <i class="bi bi-plus-circle mr-2"></i>
           新增排程
@@ -242,39 +275,41 @@ const handleDelete = async (id: string) => {
     <!-- Calendar View -->
     <div v-if="viewMode === 'calendar'" class="space-y-8">
       <!-- Calendar Card -->
-      <div class="bg-white rounded-2xl shadow-sm border-2 border-gray-200 p-8">
+      <div class="bg-white rounded-lg border border-gray-200 p-6">
         <!-- Calendar Header Section -->
-        <div class="flex items-center gap-3 mb-8">
-          <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-            <i class="bi bi-calendar-event text-blue-600 text-2xl"></i>
-          </div>
-          <div class="flex-1">
-            <h2 class="text-xl font-bold text-gray-900">月曆檢視</h2>
-            <p class="text-sm text-gray-600">點擊日期查看詳細排程</p>
-          </div>
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
           <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center">
+              <i class="bi bi-calendar-event text-gray-600 text-xl"></i>
+            </div>
+            <div>
+              <h2 class="text-lg font-semibold text-gray-900">月曆檢視</h2>
+              <p class="text-sm text-gray-600">點擊日期查看詳細排程</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
             <button
               @click="previousMonth"
-              class="p-3 hover:bg-gray-100 rounded-xl transition-all cursor-pointer hover:shadow-md"
+              class="p-2 rounded-md border border-transparent hover:border-gray-300 hover:bg-gray-50 transition-colors cursor-pointer"
             >
-              <i class="bi bi-chevron-left text-xl"></i>
+              <i class="bi bi-chevron-left text-lg text-gray-700"></i>
             </button>
-            <div class="px-6 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
-              <h3 class="text-lg font-bold text-gray-900">{{ monthName }}</h3>
+            <div class="px-3 py-2 rounded-md border border-gray-200 bg-gray-50">
+              <h3 class="text-base font-medium text-gray-800">{{ monthName }}</h3>
             </div>
             <button
               @click="nextMonth"
-              class="p-3 hover:bg-gray-100 rounded-xl transition-all cursor-pointer hover:shadow-md"
+              class="p-2 rounded-md border border-transparent hover:border-gray-300 hover:bg-gray-50 transition-colors cursor-pointer"
             >
-              <i class="bi bi-chevron-right text-xl"></i>
+              <i class="bi bi-chevron-right text-lg text-gray-700"></i>
             </button>
           </div>
         </div>
 
         <!-- Calendar Grid -->
-        <div class="grid grid-cols-7 gap-3">
+        <div class="grid grid-cols-7 gap-2">
           <!-- Week Headers -->
-          <div v-for="day in ['日', '一', '二', '三', '四', '五', '六']" :key="day" class="text-center font-bold text-gray-700 py-3 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg">
+          <div v-for="day in ['日', '一', '二', '三', '四', '五', '六']" :key="day" class="text-center font-medium text-gray-600 py-2 bg-gray-50 border border-gray-200 rounded-md">
             {{ day }}
           </div>
 
@@ -284,23 +319,20 @@ const handleDelete = async (id: string) => {
             :key="index"
             @click="selectDate(dayData.day)"
             :class="[
-              'min-h-28 p-3 border-2 rounded-xl transition-all cursor-pointer',
-              dayData.day
-                ? 'hover:bg-indigo-50 hover:border-indigo-300 hover:shadow-lg border-gray-200'
-                : 'bg-gray-50 border-transparent cursor-default',
-              selectedDate && dayData.day === selectedDate.getDate() && currentMonth === selectedDate.getMonth()
-                ? 'bg-indigo-100 border-indigo-600 shadow-lg ring-2 ring-indigo-200'
-                : ''
+              'min-h-28 p-3 border rounded-md',
+              dayData.day ? 'border-gray-200 cursor-pointer' : 'bg-gray-50 border-transparent cursor-default',
+              dayData.day && !isSelectedDay(dayData.day) ? 'transition-colors hover:bg-gray-100' : '',
+              isSelectedDay(dayData.day) ? 'bg-gray-200 border-gray-400 text-gray-900' : ''
             ]"
           >
             <div v-if="dayData.day" class="h-full flex flex-col">
-              <div class="text-sm font-bold text-gray-800 mb-2">{{ dayData.day }}</div>
-              <div class="flex-1 space-y-1.5">
+              <div :class="['text-sm font-medium mb-2', isSelectedDay(dayData.day) ? 'text-gray-900' : 'text-gray-800']">{{ dayData.day }}</div>
+              <div class="flex-1 space-y-1">
                 <div
                   v-for="schedule in dayData.schedules.slice(0, 2)"
                   :key="schedule.id"
                   @click.stop="openScheduleModal(schedule)"
-                  class="text-xs px-2 py-1 bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-800 rounded-lg truncate font-medium border border-indigo-200 cursor-pointer hover:bg-indigo-200 transition-colors"
+                  class="text-xs px-2 py-1 bg-white/80 border border-gray-200 rounded truncate font-medium text-gray-700 hover:bg-gray-100 transition-colors"
                   :title="schedule.title"
                 >
                   <i class="bi bi-clock mr-1"></i>{{ schedule.scheduledTime.slice(0, 5) }} {{ schedule.title }}
@@ -315,14 +347,14 @@ const handleDelete = async (id: string) => {
       </div>
 
       <!-- Selected Date Details -->
-      <div v-if="selectedDate" class="bg-white rounded-2xl shadow-sm border-2 border-gray-200 p-8">
+      <div v-if="selectedDate" class="bg-white rounded-lg border border-gray-200 p-6">
         <!-- Section Header -->
-        <div class="flex items-center gap-3 mb-6">
-          <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-            <i class="bi bi-calendar-check text-purple-600 text-2xl"></i>
+        <div class="flex items-center gap-3 mb-5">
+          <div class="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center">
+            <i class="bi bi-calendar-check text-gray-600 text-lg"></i>
           </div>
           <div>
-            <h3 class="text-xl font-bold text-gray-900">
+            <h3 class="text-lg font-semibold text-gray-900">
               {{ selectedDate.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric' }) }}
             </h3>
             <p class="text-sm text-gray-600">此日期的所有排程</p>
@@ -330,10 +362,10 @@ const handleDelete = async (id: string) => {
         </div>
 
         <div v-if="selectedDateSchedules.length === 0" class="text-center py-12">
-          <div class="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <i class="bi bi-calendar-x text-5xl text-gray-400"></i>
+          <div class="w-20 h-20 bg-gray-50 border border-dashed border-gray-200 rounded-lg flex items-center justify-center mx-auto mb-4">
+            <i class="bi bi-calendar-x text-4xl text-gray-400"></i>
           </div>
-          <p class="text-gray-500 text-lg font-medium mb-2">此日期沒有排程</p>
+          <p class="text-gray-600 text-base font-medium mb-2">此日期沒有排程</p>
           <p class="text-gray-400 text-sm">選擇其他日期或建立新排程</p>
         </div>
 
@@ -341,23 +373,23 @@ const handleDelete = async (id: string) => {
           <div
             v-for="schedule in selectedDateSchedules"
             :key="schedule.id"
-            class="border-2 border-gray-200 rounded-2xl p-6 hover:shadow-xl hover:border-indigo-300 transition-all"
+            class="border border-gray-200 rounded-lg p-5 hover:bg-gray-50 transition-colors"
           >
             <div class="flex items-start justify-between">
               <div class="flex-1">
                 <div class="flex items-center gap-3 mb-3">
-                  <h4 class="font-bold text-lg text-gray-900">{{ schedule.title }}</h4>
-                  <span :class="['px-3 py-1.5 rounded-xl text-xs font-bold border-2', getStatusColor(schedule.status)]">
+                  <h4 class="font-semibold text-base text-gray-900">{{ schedule.title }}</h4>
+                  <span :class="['px-2 py-0.5 rounded text-xs font-medium border', getStatusColor(schedule.status)]">
                     {{ getStatusText(schedule.status) }}
                   </span>
                 </div>
                 <p class="text-gray-700 mb-4 leading-relaxed">{{ schedule.content }}</p>
-                <div class="flex items-center gap-4 text-sm text-gray-600">
-                  <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg">
+                <div class="flex flex-wrap items-center gap-3 text-sm text-gray-600">
+                  <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-md">
                     <i class="bi bi-clock"></i>
                     <span class="font-medium">{{ schedule.scheduledTime }}</span>
                   </div>
-                  <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-lg">
+                  <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-md">
                     <i class="bi bi-arrow-repeat"></i>
                     <span class="font-medium">{{ schedule.scheduleType === 'once' ? '單次' : schedule.scheduleType === 'weekly' ? '每週' : '每月' }}</span>
                   </div>
@@ -367,24 +399,24 @@ const handleDelete = async (id: string) => {
               <div class="flex gap-2 ml-6">
                 <button
                   @click="handleEdit(schedule.id)"
-                  class="p-3 hover:bg-indigo-50 text-indigo-600 rounded-xl transition-all cursor-pointer hover:shadow-md border-2 border-transparent hover:border-indigo-200"
+                  class="p-2 text-gray-600 rounded-md transition-colors cursor-pointer border border-transparent hover:border-gray-300 hover:bg-gray-100"
                   title="編輯"
                 >
-                  <i class="bi bi-pencil-square text-xl"></i>
+                  <i class="bi bi-pencil-square text-lg"></i>
                 </button>
                 <button
                   @click="handleDuplicate(schedule)"
-                  class="p-3 hover:bg-green-50 text-green-600 rounded-xl transition-all cursor-pointer hover:shadow-md border-2 border-transparent hover:border-green-200"
+                  class="p-2 text-gray-600 rounded-md transition-colors cursor-pointer border border-transparent hover:border-gray-300 hover:bg-gray-100"
                   title="複製"
                 >
-                  <i class="bi bi-files text-xl"></i>
+                  <i class="bi bi-files text-lg"></i>
                 </button>
                 <button
                   @click="handleDelete(schedule.id)"
-                  class="p-3 hover:bg-red-50 text-red-600 rounded-xl transition-all cursor-pointer hover:shadow-md border-2 border-transparent hover:border-red-200"
+                  class="p-2 text-red-600 rounded-md transition-colors cursor-pointer border border-transparent hover:border-red-200 hover:bg-red-50"
                   title="刪除"
                 >
-                  <i class="bi bi-trash text-xl"></i>
+                  <i class="bi bi-trash text-lg"></i>
                 </button>
               </div>
             </div>
@@ -395,14 +427,14 @@ const handleDelete = async (id: string) => {
 
     <!-- List View -->
     <div v-else>
-      <div class="bg-white rounded-2xl shadow-sm border-2 border-gray-200 p-8">
+      <div class="bg-white rounded-lg border border-gray-200 p-6">
         <!-- Section Header -->
-        <div class="flex items-center gap-3 mb-8">
-          <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
-            <i class="bi bi-list-ul text-indigo-600 text-2xl"></i>
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center">
+            <i class="bi bi-list-ul text-gray-600 text-lg"></i>
           </div>
           <div>
-            <h2 class="text-xl font-bold text-gray-900">所有排程</h2>
+            <h2 class="text-lg font-semibold text-gray-900">所有排程</h2>
             <p class="text-sm text-gray-600">共 {{ schedules.length }} 個排程</p>
           </div>
         </div>
@@ -411,31 +443,31 @@ const handleDelete = async (id: string) => {
           <div
             v-for="schedule in schedules"
             :key="schedule.id"
-            class="border-2 border-gray-200 rounded-2xl p-6 hover:shadow-xl hover:border-indigo-300 transition-all"
+            class="border border-gray-200 rounded-lg p-5 hover:bg-gray-50 transition-colors"
           >
             <div class="flex items-start justify-between">
               <div class="flex-1">
                 <div class="flex items-center gap-3 mb-3">
-                  <h3 class="text-xl font-bold text-gray-900">{{ schedule.title }}</h3>
-                  <span :class="['px-3 py-1.5 rounded-xl text-xs font-bold border-2', getStatusColor(schedule.status)]">
+                  <h3 class="text-base font-semibold text-gray-900">{{ schedule.title }}</h3>
+                  <span :class="['px-2 py-0.5 rounded text-xs font-medium border', getStatusColor(schedule.status)]">
                     {{ getStatusText(schedule.status) }}
                   </span>
                 </div>
 
                 <p class="text-gray-700 mb-4 leading-relaxed">{{ schedule.content }}</p>
 
-                <div class="flex gap-3 text-sm">
-                  <div class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                    <i class="bi bi-calendar-event text-blue-600"></i>
-                    <span class="font-semibold text-gray-800">{{ schedule.scheduledDate || '-' }}</span>
+                <div class="flex flex-wrap gap-3 text-sm">
+                  <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-md">
+                    <i class="bi bi-calendar-event text-gray-600"></i>
+                    <span class="font-medium text-gray-800">{{ schedule.scheduledDate || '-' }}</span>
                   </div>
-                  <div class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
-                    <i class="bi bi-clock text-purple-600"></i>
-                    <span class="font-semibold text-gray-800">{{ schedule.scheduledTime }}</span>
+                  <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-md">
+                    <i class="bi bi-clock text-gray-600"></i>
+                    <span class="font-medium text-gray-800">{{ schedule.scheduledTime }}</span>
                   </div>
-                  <div class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-                    <i class="bi bi-arrow-repeat text-green-600"></i>
-                    <span class="font-semibold text-gray-800">
+                  <div class="flex items-center gap-2 px-3 py-1.5 bg-gray-100 rounded-md">
+                    <i class="bi bi-arrow-repeat text-gray-600"></i>
+                    <span class="font-medium text-gray-800">
                       {{ schedule.scheduleType === 'once' ? '單次執行' : schedule.scheduleType === 'weekly' ? '每週重複' : '每月重複' }}
                     </span>
                   </div>
@@ -445,38 +477,38 @@ const handleDelete = async (id: string) => {
               <div class="flex gap-2 ml-6">
                 <button
                   @click="handleEdit(schedule.id)"
-                  class="p-3 hover:bg-indigo-50 text-indigo-600 rounded-xl transition-all cursor-pointer hover:shadow-md border-2 border-transparent hover:border-indigo-200"
+                  class="p-2 text-gray-600 rounded-md transition-colors cursor-pointer border border-transparent hover:border-gray-300 hover:bg-gray-100"
                   title="編輯"
                 >
-                  <i class="bi bi-pencil-square text-xl"></i>
+                  <i class="bi bi-pencil-square text-lg"></i>
                 </button>
                 <button
                   @click="handleDuplicate(schedule)"
-                  class="p-3 hover:bg-green-50 text-green-600 rounded-xl transition-all cursor-pointer hover:shadow-md border-2 border-transparent hover:border-green-200"
+                  class="p-2 text-gray-600 rounded-md transition-colors cursor-pointer border border-transparent hover:border-gray-300 hover:bg-gray-100"
                   title="複製"
                 >
-                  <i class="bi bi-files text-xl"></i>
+                  <i class="bi bi-files text-lg"></i>
                 </button>
                 <button
                   @click="handleDelete(schedule.id)"
-                  class="p-3 hover:bg-red-50 text-red-600 rounded-xl transition-all cursor-pointer hover:shadow-md border-2 border-transparent hover:border-red-200"
+                  class="p-2 text-red-600 rounded-md transition-colors cursor-pointer border border-transparent hover:border-red-200 hover:bg-red-50"
                   title="刪除"
                 >
-                  <i class="bi bi-trash text-xl"></i>
+                  <i class="bi bi-trash text-lg"></i>
                 </button>
               </div>
             </div>
           </div>
 
-          <div v-if="schedules.length === 0" class="text-center py-16">
-            <div class="w-32 h-32 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <i class="bi bi-calendar-x text-6xl text-gray-400"></i>
+          <div v-if="schedules.length === 0" class="text-center py-12">
+            <div class="w-24 h-24 bg-gray-50 border border-dashed border-gray-200 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <i class="bi bi-calendar-x text-4xl text-gray-400"></i>
             </div>
-            <p class="text-gray-600 text-xl font-bold mb-2">目前沒有任何排程</p>
-            <p class="text-gray-500 mb-6">開始建立您的第一個 Discord 訊息排程</p>
+            <p class="text-gray-600 text-base font-medium mb-2">目前沒有任何排程</p>
+            <p class="text-gray-500 text-sm mb-6">開始建立您的第一個 Discord 訊息排程</p>
             <button
               @click="router.push('/dashboard/schedule/new')"
-              class="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all font-bold shadow-lg hover:shadow-xl cursor-pointer"
+              class="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors font-medium cursor-pointer"
             >
               <i class="bi bi-plus-circle mr-2"></i>
               建立第一個排程
@@ -490,32 +522,26 @@ const handleDelete = async (id: string) => {
     <div
       v-if="showScheduleModal && modalSchedule"
       @click="closeScheduleModal"
-      class="fixed inset-0 bg-black/20 flex items-center justify-center z-50 p-4 backdrop-blur-sm animate-fade-in"
+      class="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4 animate-fade-in"
     >
       <div
         @click.stop
-        class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-hidden animate-scale-in border border-gray-100"
+        class="bg-white rounded-lg shadow-lg max-w-3xl w-full max-h-[85vh] overflow-hidden animate-scale-in border border-gray-200"
       >
         <!-- Modal Header -->
-        <div class="bg-gradient-to-r from-indigo-500 to-purple-600 p-8 text-white">
-          <div class="flex items-start justify-between mb-4">
+        <div class="border-b border-gray-200 p-6 bg-white">
+          <div class="flex items-start justify-between">
             <div class="flex-1">
               <div class="flex items-center gap-3 mb-3">
-                <div class="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                  <i class="bi bi-calendar-event text-2xl"></i>
+                <div class="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center">
+                  <i class="bi bi-calendar-event text-gray-600 text-lg"></i>
                 </div>
-                <span :class="[
-                  'px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider',
-                  modalSchedule.status === 'active' ? 'bg-green-400/30 text-green-100 border border-green-300/50' :
-                  modalSchedule.status === 'draft' ? 'bg-gray-400/30 text-gray-100 border border-gray-300/50' :
-                  modalSchedule.status === 'paused' ? 'bg-yellow-400/30 text-yellow-100 border border-yellow-300/50' :
-                  'bg-blue-400/30 text-blue-100 border border-blue-300/50'
-                ]">
+                <span :class="['px-2 py-0.5 rounded text-xs font-medium border', getStatusColor(modalSchedule.status)]">
                   {{ getStatusText(modalSchedule.status) }}
                 </span>
               </div>
-              <h2 class="text-3xl font-bold mb-2 leading-tight">{{ modalSchedule.title }}</h2>
-              <div class="flex items-center gap-4 text-indigo-100">
+              <h2 class="text-xl font-semibold text-gray-900 mb-2 leading-tight">{{ modalSchedule.title }}</h2>
+              <div class="flex flex-wrap items-center gap-4 text-sm text-gray-600">
                 <div class="flex items-center gap-2">
                   <i class="bi bi-clock-fill"></i>
                   <span class="font-medium">{{ modalSchedule.scheduledTime }}</span>
@@ -531,95 +557,95 @@ const handleDelete = async (id: string) => {
             </div>
             <button
               @click="closeScheduleModal"
-              class="p-2.5 hover:bg-white/20 rounded-xl transition-colors"
+              class="p-2 rounded-md hover:bg-gray-100 transition-colors text-gray-500"
             >
-              <i class="bi bi-x-lg text-2xl"></i>
+              <i class="bi bi-x-lg text-xl"></i>
             </button>
           </div>
         </div>
 
         <!-- Modal Body -->
-        <div class="p-8 space-y-6 overflow-y-auto max-h-[calc(85vh-280px)]">
+        <div class="p-6 space-y-6 overflow-y-auto max-h-[calc(85vh-240px)] bg-gray-50">
           <!-- Content -->
           <div>
             <div class="flex items-center gap-2 mb-3">
-              <div class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
-                <i class="bi bi-chat-left-text text-indigo-600"></i>
+              <div class="w-8 h-8 bg-white rounded-md flex items-center justify-center border border-gray-200">
+                <i class="bi bi-chat-left-text text-gray-600"></i>
               </div>
-              <h3 class="text-lg font-bold text-gray-900">訊息內容</h3>
+              <h3 class="text-base font-semibold text-gray-900">訊息內容</h3>
             </div>
-            <div class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-6 border border-gray-200">
-              <p class="text-gray-800 whitespace-pre-wrap leading-relaxed text-base">{{ modalSchedule.content }}</p>
+            <div class="bg-white rounded-lg p-5 border border-gray-200">
+              <p class="text-gray-800 whitespace-pre-wrap leading-relaxed text-sm">{{ modalSchedule.content }}</p>
             </div>
           </div>
 
           <!-- Schedule Details -->
           <div>
             <div class="flex items-center gap-2 mb-4">
-              <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                <i class="bi bi-info-circle text-purple-600"></i>
+              <div class="w-8 h-8 bg-white rounded-md flex items-center justify-center border border-gray-200">
+                <i class="bi bi-info-circle text-gray-600"></i>
               </div>
-              <h3 class="text-lg font-bold text-gray-900">排程資訊</h3>
+              <h3 class="text-base font-semibold text-gray-900">排程資訊</h3>
             </div>
-            <div class="grid grid-cols-2 gap-4">
-              <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-5 border-2 border-blue-200 hover:border-blue-300 transition-colors">
-                <div class="flex items-center gap-2 mb-2">
-                  <i class="bi bi-arrow-repeat text-blue-600 text-xl"></i>
-                  <p class="text-xs text-blue-700 font-bold uppercase tracking-wider">類型</p>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div class="bg-white rounded-lg p-4 border border-gray-200">
+                <div class="flex items-center gap-2 mb-1 text-xs text-gray-500 uppercase tracking-wide">
+                  <i class="bi bi-arrow-repeat text-gray-500"></i>
+                  <p class="font-medium">類型</p>
                 </div>
-                <p class="text-lg font-bold text-gray-900">
+                <p class="text-sm font-medium text-gray-900">
                   {{
                     modalSchedule.scheduleType === 'once' ? '單次執行' :
                     modalSchedule.scheduleType === 'weekly' ? '每週重複' : '每月重複'
                   }}
                 </p>
               </div>
-              <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-5 border-2 border-purple-200 hover:border-purple-300 transition-colors">
-                <div class="flex items-center gap-2 mb-2">
-                  <i class="bi bi-clock-fill text-purple-600 text-xl"></i>
-                  <p class="text-xs text-purple-700 font-bold uppercase tracking-wider">時間</p>
+              <div class="bg-white rounded-lg p-4 border border-gray-200">
+                <div class="flex items-center gap-2 mb-1 text-xs text-gray-500 uppercase tracking-wide">
+                  <i class="bi bi-clock-fill text-gray-500"></i>
+                  <p class="font-medium">時間</p>
                 </div>
-                <p class="text-lg font-bold text-gray-900">{{ modalSchedule.scheduledTime }}</p>
+                <p class="text-sm font-medium text-gray-900">{{ modalSchedule.scheduledTime }}</p>
               </div>
-              <div v-if="modalSchedule.scheduledDate" class="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-5 border-2 border-green-200 hover:border-green-300 transition-colors">
-                <div class="flex items-center gap-2 mb-2">
-                  <i class="bi bi-calendar-check text-green-600 text-xl"></i>
-                  <p class="text-xs text-green-700 font-bold uppercase tracking-wider">日期</p>
+              <div v-if="modalSchedule.scheduledDate" class="bg-white rounded-lg p-4 border border-gray-200">
+                <div class="flex items-center gap-2 mb-1 text-xs text-gray-500 uppercase tracking-wide">
+                  <i class="bi bi-calendar-check text-gray-500"></i>
+                  <p class="font-medium">日期</p>
                 </div>
-                <p class="text-lg font-bold text-gray-900">{{ modalSchedule.scheduledDate }}</p>
+                <p class="text-sm font-medium text-gray-900">{{ modalSchedule.scheduledDate }}</p>
               </div>
-              <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-2xl p-5 border-2 border-indigo-200 hover:border-indigo-300 transition-colors">
-                <div class="flex items-center gap-2 mb-2">
-                  <i class="bi bi-hash text-indigo-600 text-xl"></i>
-                  <p class="text-xs text-indigo-700 font-bold uppercase tracking-wider">頻道</p>
+              <div class="bg-white rounded-lg p-4 border border-gray-200">
+                <div class="flex items-center gap-2 mb-1 text-xs text-gray-500 uppercase tracking-wide">
+                  <i class="bi bi-hash text-gray-500"></i>
+                  <p class="font-medium">頻道</p>
                 </div>
-                <p class="text-sm font-bold text-gray-900 truncate">{{ modalSchedule.channelId }}</p>
+                <p class="text-sm font-medium text-gray-900 truncate">{{ getChannelName(modalSchedule.channelId) }}</p>
               </div>
             </div>
           </div>
         </div>
 
         <!-- Modal Footer -->
-        <div class="sticky bottom-0 bg-white border-t border-gray-200 p-6 flex gap-3">
+        <div class="sticky bottom-0 bg-white border-t border-gray-200 p-4 flex flex-col gap-2 sm:flex-row">
           <button
             @click="handleEdit(modalSchedule.id)"
-            class="flex-1 px-6 py-4 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-2xl hover:from-indigo-700 hover:to-indigo-800 transition-all font-bold flex items-center justify-center gap-3 shadow-lg hover:shadow-xl group"
+            class="flex-1 px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors font-medium flex items-center justify-center gap-2"
           >
-            <i class="bi bi-pencil-square text-xl group-hover:scale-110 transition-transform"></i>
+            <i class="bi bi-pencil-square text-lg"></i>
             <span>編輯</span>
           </button>
           <button
             @click="handleDuplicate(modalSchedule); closeScheduleModal()"
-            class="flex-1 px-6 py-4 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-2xl hover:from-green-700 hover:to-green-800 transition-all font-bold flex items-center justify-center gap-3 shadow-lg hover:shadow-xl group"
+            class="flex-1 px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors font-medium flex items-center justify-center gap-2"
           >
-            <i class="bi bi-files text-xl group-hover:scale-110 transition-transform"></i>
+            <i class="bi bi-files text-lg"></i>
             <span>複製</span>
           </button>
           <button
             @click="handleDelete(modalSchedule.id); closeScheduleModal()"
-            class="flex-1 px-6 py-4 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-2xl hover:from-red-700 hover:to-red-800 transition-all font-bold flex items-center justify-center gap-3 shadow-lg hover:shadow-xl group"
+            class="flex-1 px-4 py-2 bg-white text-red-600 border border-red-300 rounded-md hover:bg-red-50 transition-colors font-medium flex items-center justify-center gap-2"
           >
-            <i class="bi bi-trash text-xl group-hover:scale-110 transition-transform"></i>
+            <i class="bi bi-trash text-lg"></i>
             <span>刪除</span>
           </button>
         </div>

@@ -115,6 +115,21 @@ export interface DiscordGuildsResponse {
 export type ScheduleType = 'once' | 'weekly' | 'monthly'
 export type ScheduleStatus = 'draft' | 'active' | 'paused' | 'completed'
 
+export interface ScheduleAttachmentImage {
+  imageId: string
+  firebaseUrl: string
+  filePath: string
+  fileName: string
+  fileSize: number
+  mimeType: string
+  uploadedAt: string
+  discordUrl?: string | null
+}
+
+export interface ScheduleAttachments {
+  images: ScheduleAttachmentImage[]
+}
+
 export interface Schedule {
   id: string
   userId: string
@@ -127,7 +142,7 @@ export interface Schedule {
   monthDay?: number // 1-31 (monthly only)
   channelId: string
   timezone: string
-  attachments?: Record<string, any>
+  attachments?: ScheduleAttachments | null
   status: ScheduleStatus
   lastExecutedAt?: string
   nextExecutionAt?: string
@@ -145,7 +160,7 @@ export interface ScheduleCreateRequest {
   monthDay?: number // 1-31 (monthly only)
   channelId: string
   timezone?: string
-  attachments?: Record<string, any>
+  attachments?: ScheduleAttachments | null
   status?: 'draft' | 'active'
 }
 
@@ -159,7 +174,18 @@ export interface ScheduleUpdateRequest {
   monthDay?: number
   channelId?: string
   timezone?: string
+  attachments?: ScheduleAttachments | null
   status?: ScheduleStatus
+}
+
+export interface StorageUploadImageResponse {
+  imageId: string
+  publicUrl: string
+  filePath: string
+  fileName: string
+  fileSize: number
+  mimeType: string
+  uploadedAt: string
 }
 
 export interface ScheduleListResponse {

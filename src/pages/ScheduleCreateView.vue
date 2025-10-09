@@ -3,7 +3,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useDiscordStore } from '@/stores/discord'
 import { useScheduleStore } from '@/stores/schedule'
-import type { ScheduleType, Timezone } from '@/services/api'
+import type { ScheduleType, Timezone, ScheduleAttachmentImage } from '@/services/api'
+import { storageApi } from '@/services/api'
 import { marked } from 'marked'
 
 const router = useRouter()
@@ -12,6 +13,9 @@ const discordStore = useDiscordStore()
 const scheduleStore = useScheduleStore()
 
 type ScheduleStatus = 'draft' | 'active'
+
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5MB
+const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp']
 
 // Configure marked
 marked.setOptions({
@@ -27,6 +31,10 @@ const isEditMode = computed(() => !!scheduleId.value)
 const channelSearch = ref('')
 const isChannelDropdownOpen = ref(false)
 const isSubmitting = ref(false)
+const isUploading = ref(false)
+const removingImageId = ref<string | null>(null)
+const uploadError = ref<string | null>(null)
+const uploadedImages = ref<ScheduleAttachmentImage[]>([])
 
 // Form data
 const form = ref({
@@ -111,6 +119,7 @@ onMounted(async () => {
       const hours = String(now.getHours()).padStart(2, '0')
       const minutes = String(now.getMinutes()).padStart(2, '0')
       form.value.scheduledTime = `${hours}:${minutes}`
+      uploadedImages.value = []
     }
   } catch (error: any) {
     console.error('Failed to load initial data:', error)
@@ -135,6 +144,12 @@ async function loadSchedule(id: string) {
       timezone: schedule.timezone,
       status: schedule.status as ScheduleStatus,
     }
+    uploadedImages.value = schedule.attachments?.images
+      ? schedule.attachments.images.map((image) => ({
+          ...image,
+          discordUrl: image.discordUrl ?? null,
+        }))
+      : []
   } catch (error: any) {
     console.error('Failed to load schedule:', error)
     alert(error.response?.data?.message || '載入排程失敗')
@@ -163,7 +178,93 @@ function buildPayload() {
     payload.monthDay = form.value.monthDay
   }
 
+  payload.attachments = {
+    images: uploadedImages.value.map((image) => ({
+      ...image,
+      discordUrl: image.discordUrl ?? null,
+    })),
+  }
+
   return payload
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
+}
+
+async function handleFileChange(event: Event) {
+  const input = event.target as HTMLInputElement
+  const files = input.files ? Array.from(input.files) : []
+
+  if (!files.length) return
+
+  uploadError.value = null
+  isUploading.value = true
+
+  try {
+    for (const file of files) {
+      if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+        const message = '僅支援 PNG、JPG、JPEG、GIF、WEBP 格式'
+        uploadError.value = message
+        alert(message)
+        continue
+      }
+
+      if (file.size > MAX_IMAGE_SIZE) {
+        const message = '圖片大小不可超過 5 MB'
+        uploadError.value = message
+        alert(message)
+        continue
+      }
+
+      try {
+        const uploaded = await storageApi.uploadImage(file)
+        const image: ScheduleAttachmentImage = {
+          imageId: uploaded.imageId,
+          firebaseUrl: uploaded.publicUrl,
+          filePath: uploaded.filePath,
+          fileName: uploaded.fileName,
+          fileSize: uploaded.fileSize,
+          mimeType: uploaded.mimeType,
+          uploadedAt: uploaded.uploadedAt,
+          discordUrl: null,
+        }
+
+        uploadedImages.value.push(image)
+      } catch (error: any) {
+        console.error('Failed to upload image:', error)
+        const message = error.response?.data?.message || '圖片上傳失敗'
+        uploadError.value = message
+        alert(message)
+      }
+    }
+  } finally {
+    if (input) {
+      input.value = ''
+    }
+    isUploading.value = false
+  }
+}
+
+async function removeImage(image: ScheduleAttachmentImage) {
+  if (removingImageId.value) return
+
+  removingImageId.value = image.imageId
+  uploadError.value = null
+
+  try {
+    await storageApi.deleteImage(image.filePath)
+    uploadedImages.value = uploadedImages.value.filter((item) => item.imageId !== image.imageId)
+  } catch (error: any) {
+    console.error('Failed to delete image:', error)
+    const message = error.response?.data?.message || '刪除圖片失敗'
+    uploadError.value = message
+    alert(message)
+  } finally {
+    removingImageId.value = null
+  }
 }
 
 // Handle form submission
@@ -292,6 +393,68 @@ const isFormValid = () => {
                 v-html="contentPreviewHtml"
               ></div>
               <p v-else class="text-gray-400 italic">訊息內容會顯示在這裡...</p>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-3">
+              圖片附件
+            </label>
+            <div
+              class="relative border-2 border-dashed border-gray-300 rounded-xl p-6 text-center bg-gray-50 hover:border-indigo-400 transition"
+            >
+              <input
+                type="file"
+                multiple
+                accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                class="absolute inset-0 opacity-0 cursor-pointer"
+                @change="handleFileChange"
+                :disabled="isUploading"
+              />
+              <div class="space-y-2 pointer-events-none">
+                <i class="bi bi-cloud-arrow-up text-3xl text-indigo-500"></i>
+                <p class="font-semibold text-gray-700">拖曳或點擊上傳圖片</p>
+                <p class="text-sm text-gray-500">
+                  支援 PNG / JPG / JPEG / GIF / WEBP，單檔上限 5 MB
+                </p>
+              </div>
+            </div>
+            <p v-if="isUploading" class="text-sm text-indigo-600 mt-2 flex items-center gap-2">
+              <i class="bi bi-hourglass-split"></i>
+              圖片上傳中...
+            </p>
+            <p v-if="uploadError" class="text-sm text-red-600 mt-2 flex items-center gap-2">
+              <i class="bi bi-exclamation-triangle-fill"></i>
+              {{ uploadError }}
+            </p>
+            <div v-if="uploadedImages.length" class="mt-4 space-y-3">
+              <div
+                v-for="image in uploadedImages"
+                :key="image.imageId"
+                class="flex items-center gap-4 bg-white border border-gray-200 rounded-xl p-3"
+              >
+                <img
+                  :src="image.firebaseUrl"
+                  :alt="image.fileName"
+                  class="w-16 h-16 object-cover rounded-lg border"
+                />
+                <div class="flex-1 text-left">
+                  <p class="font-medium text-gray-900">{{ image.fileName }}</p>
+                  <p class="text-sm text-gray-500">
+                    {{ formatFileSize(image.fileSize) }} · {{ image.mimeType }}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  class="text-red-500 hover:text-red-600 font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  @click="removeImage(image)"
+                  :disabled="removingImageId === image.imageId"
+                >
+                  <i v-if="removingImageId === image.imageId" class="bi bi-hourglass-split"></i>
+                  <i v-else class="bi bi-trash"></i>
+                  {{ removingImageId === image.imageId ? '處理中...' : '移除' }}
+                </button>
+              </div>
             </div>
           </div>
         </div>

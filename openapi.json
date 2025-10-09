@@ -1382,6 +1382,137 @@
           }
         }
       }
+    },
+    "/api/storage/upload-image": {
+      "post": {
+        "summary": "上傳圖片至 Firebase Storage",
+        "tags": [
+          "Storage"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "image"
+                ],
+                "properties": {
+                  "image": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "圖片檔案（PNG, JPG, JPEG, GIF, WEBP，最大 5MB）"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "圖片上傳成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "imageId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "publicUrl": {
+                          "type": "string"
+                        },
+                        "filePath": {
+                          "type": "string"
+                        },
+                        "fileName": {
+                          "type": "string"
+                        },
+                        "fileSize": {
+                          "type": "integer"
+                        },
+                        "mimeType": {
+                          "type": "string"
+                        },
+                        "uploadedAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "請求資料錯誤"
+          },
+          "401": {
+            "description": "未認證"
+          },
+          "500": {
+            "description": "上傳失敗"
+          }
+        }
+      }
+    },
+    "/api/storage/images/{filePath}": {
+      "delete": {
+        "summary": "刪除 Firebase Storage 圖片",
+        "tags": [
+          "Storage"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "filePath",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Firebase Storage 檔案路徑（需 URL encode）"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "圖片刪除成功"
+          },
+          "401": {
+            "description": "未認證"
+          },
+          "403": {
+            "description": "無權限刪除"
+          },
+          "404": {
+            "description": "圖片不存在"
+          },
+          "500": {
+            "description": "刪除失敗"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1698,7 +1829,45 @@
           },
           "attachments": {
             "type": "object",
-            "description": "附件資料 (預留給未來圖片功能)"
+            "nullable": true,
+            "description": "附件資料",
+            "properties": {
+              "images": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "imageId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "firebaseUrl": {
+                      "type": "string"
+                    },
+                    "filePath": {
+                      "type": "string"
+                    },
+                    "fileName": {
+                      "type": "string"
+                    },
+                    "fileSize": {
+                      "type": "integer"
+                    },
+                    "mimeType": {
+                      "type": "string"
+                    },
+                    "uploadedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "discordUrl": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
           },
           "status": {
             "type": "string",
@@ -1806,7 +1975,62 @@
           },
           "attachments": {
             "type": "object",
-            "description": "附件資料 (預留給未來圖片功能)"
+            "nullable": true,
+            "description": "附件資料",
+            "properties": {
+              "images": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "imageId",
+                    "firebaseUrl",
+                    "filePath",
+                    "fileName",
+                    "fileSize",
+                    "mimeType",
+                    "uploadedAt"
+                  ],
+                  "properties": {
+                    "imageId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "圖片唯一識別碼"
+                    },
+                    "firebaseUrl": {
+                      "type": "string",
+                      "description": "Firebase Storage 公開 URL"
+                    },
+                    "filePath": {
+                      "type": "string",
+                      "description": "Firebase Storage 檔案路徑"
+                    },
+                    "fileName": {
+                      "type": "string",
+                      "description": "檔案名稱"
+                    },
+                    "fileSize": {
+                      "type": "integer",
+                      "description": "檔案大小（bytes）"
+                    },
+                    "mimeType": {
+                      "type": "string",
+                      "description": "MIME 類型"
+                    },
+                    "uploadedAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "上傳時間"
+                    },
+                    "discordUrl": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Discord CDN URL（創建時為 null）"
+                    }
+                  }
+                }
+              }
+            }
           },
           "status": {
             "type": "string",
