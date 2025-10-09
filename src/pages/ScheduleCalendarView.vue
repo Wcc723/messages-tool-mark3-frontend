@@ -18,6 +18,17 @@ const viewMode = ref<ViewMode>('calendar')
 
 // Get schedules from store
 const schedules = computed(() => scheduleStore.schedules)
+const searchKeyword = ref('')
+const statusFilter = ref<ScheduleStatus | ''>('')
+const isFiltering = ref(false)
+const filterError = ref<string | null>(null)
+const statusOptions: Array<{ value: ScheduleStatus | ''; label: string }> = [
+  { value: '', label: '全部狀態' },
+  { value: 'active', label: '啟用中' },
+  { value: 'draft', label: '草稿' },
+  { value: 'paused', label: '已暫停' },
+  { value: 'completed', label: '已完成' },
+]
 
 const currentDate = ref(new Date())
 const selectedDate = ref<Date | null>(null)
@@ -170,13 +181,37 @@ const getStatusText = (status: ScheduleStatus) => {
 }
 
 // Load schedules on mount
-onMounted(async () => {
+const fetchSchedules = async (params?: { search?: string; status?: ScheduleStatus | '' }) => {
   try {
-    await scheduleStore.fetchSchedules()
+    filterError.value = null
+    await scheduleStore.fetchSchedules({
+      search: params?.search && params.search.trim() !== '' ? params.search.trim() : undefined,
+      status: params?.status ? params.status : undefined,
+    })
   } catch (error: any) {
-    console.error('Failed to load schedules:', error)
-    alert(error.response?.data?.message || '載入排程失敗')
+    const message = error.response?.data?.message || '載入排程失敗'
+    if (params) {
+      filterError.value = message
+    } else {
+      alert(message)
+    }
   }
+}
+
+const applyFilters = async () => {
+  isFiltering.value = true
+  await fetchSchedules({ search: searchKeyword.value, status: statusFilter.value })
+  isFiltering.value = false
+}
+
+const resetFilters = async () => {
+  searchKeyword.value = ''
+  statusFilter.value = ''
+  await applyFilters()
+}
+
+onMounted(async () => {
+  await fetchSchedules()
 
   if (!channels.value.length) {
     try {
@@ -189,11 +224,7 @@ onMounted(async () => {
 
 // Reload schedules when month changes
 watch([currentYear, currentMonth], async () => {
-  try {
-    await scheduleStore.fetchSchedules()
-  } catch (error: any) {
-    console.error('Failed to reload schedules:', error)
-  }
+  await fetchSchedules({ search: searchKeyword.value, status: statusFilter.value })
 })
 
 // CRUD operations
@@ -270,6 +301,51 @@ const handleDelete = async (id: string) => {
           新增排程
         </button>
       </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-lg border border-gray-200 p-4 mb-8">
+      <form @submit.prevent="applyFilters" class="grid grid-cols-1 gap-4 md:grid-cols-[1fr_200px_auto] md:items-end">
+        <div class="flex flex-col gap-2">
+          <label for="scheduleSearch" class="text-sm font-medium text-gray-700">關鍵字</label>
+          <input
+            id="scheduleSearch"
+            v-model="searchKeyword"
+            type="text"
+            placeholder="輸入標題或內容關鍵字"
+            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
+          />
+        </div>
+        <div class="flex flex-col gap-2">
+          <label for="scheduleStatus" class="text-sm font-medium text-gray-700">狀態</label>
+          <select
+            id="scheduleStatus"
+            v-model="statusFilter"
+            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 cursor-pointer"
+          >
+            <option v-for="option in statusOptions" :key="option.value || 'all'" :value="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+        </div>
+        <div class="flex gap-2 md:justify-end">
+          <button
+            type="button"
+            @click="resetFilters"
+            class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100 transition-colors"
+          >
+            重設
+          </button>
+          <button
+            type="submit"
+            :disabled="isFiltering"
+            class="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            {{ isFiltering ? '篩選中...' : '套用篩選' }}
+          </button>
+        </div>
+      </form>
+      <p v-if="filterError" class="text-sm text-red-600 mt-3">{{ filterError }}</p>
     </div>
 
     <!-- Calendar View -->

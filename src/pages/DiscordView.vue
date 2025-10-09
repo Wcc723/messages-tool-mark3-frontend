@@ -1,276 +1,287 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { storeToRefs } from 'pinia'
+import { useDiscordStore } from '@/stores/discord'
+import { discordApi } from '@/services/api'
 
-interface DiscordGuild {
-  id: string
-  name: string
-  icon: string | null
-  memberCount: number
-}
+const discordStore = useDiscordStore()
+const { guilds, channels } = storeToRefs(discordStore)
 
-interface DiscordChannel {
-  id: string
-  name: string
-  type: number
-  permissions: {
-    viewChannel: boolean
-    sendMessages: boolean
-  }
-}
+const botInfo = ref<{ id: string; username: string; discriminator: string; avatar?: string } | null>(null)
+const botStatus = ref<'connected' | 'disconnected' | 'unknown'>('unknown')
+const botGuildCount = ref(0)
+const isLoadingBot = ref(false)
+const botError = ref<string | null>(null)
 
-// Mock Discord Bot Info
-const botInfo = ref({
-  id: '1234567890',
-  username: 'My Discord Bot',
-  discriminator: '0001',
-  avatar: 'https://ui-avatars.com/api/?name=Discord+Bot&background=5865F2&color=fff',
-  isConnected: true,
-})
-
-// Mock Guilds Data
-const guilds = ref<DiscordGuild[]>([
-  {
-    id: '111111111',
-    name: 'Hexschool 開發團隊',
-    icon: null,
-    memberCount: 156,
-  },
-  {
-    id: '222222222',
-    name: '測試伺服器',
-    icon: null,
-    memberCount: 42,
-  },
-  {
-    id: '333333333',
-    name: '前端社群',
-    icon: null,
-    memberCount: 328,
-  },
-])
+const isLoadingGuilds = ref(false)
+const guildError = ref<string | null>(null)
 
 const selectedGuildId = ref('')
-const channels = ref<DiscordChannel[]>([])
 const isLoadingChannels = ref(false)
+const channelError = ref<string | null>(null)
 
-const testMessage = ref({
-  channelId: '',
-  content: '',
+const isSendingTest = ref(false)
+const testChannelId = ref('')
+const testContent = ref('')
+const testError = ref<string | null>(null)
+
+const avatarUrl = computed(() => {
+  if (!botInfo.value) return 'https://ui-avatars.com/api/?name=Discord+Bot&background=111827&color=fff'
+  const { id, avatar, username } = botInfo.value
+  if (avatar) {
+    return `https://cdn.discordapp.com/avatars/${id}/${avatar}.png`
+  }
+  const initials = encodeURIComponent(username || 'Bot')
+  return `https://ui-avatars.com/api/?name=${initials}&background=111827&color=fff`
 })
 
-const handleGuildSelect = async (guildId: string) => {
-  selectedGuildId.value = guildId
-  isLoadingChannels.value = true
+const connectionLabel = computed(() => {
+  if (botStatus.value === 'connected') return '已連接'
+  if (botStatus.value === 'disconnected') return '未連接'
+  return '未知'
+})
 
-  // Mock loading channels
-  setTimeout(() => {
-    channels.value = [
-      {
-        id: '123456789',
-        name: 'general',
-        type: 0,
-        permissions: { viewChannel: true, sendMessages: true },
-      },
-      {
-        id: '987654321',
-        name: 'announcements',
-        type: 0,
-        permissions: { viewChannel: true, sendMessages: true },
-      },
-      {
-        id: '456789123',
-        name: 'development',
-        type: 0,
-        permissions: { viewChannel: true, sendMessages: true },
-      },
-      {
-        id: '789123456',
-        name: 'testing',
-        type: 0,
-        permissions: { viewChannel: true, sendMessages: true },
-      },
-    ]
-    isLoadingChannels.value = false
-  }, 500)
+const connectionBadgeClass = computed(() => {
+  if (botStatus.value === 'connected') return 'bg-green-500'
+  if (botStatus.value === 'disconnected') return 'bg-red-500'
+  return 'bg-gray-400'
+})
+
+const filteredChannels = computed(() => channels.value.filter((channel) => channel.type === 0))
+
+const selectedGuild = computed(() => guilds.value.find((guild) => guild.id === selectedGuildId.value) || null)
+
+const loadBotInfo = async () => {
+  isLoadingBot.value = true
+  botError.value = null
+  try {
+    const data = await discordApi.getBotInfo()
+    botInfo.value = data.bot
+    botStatus.value = data.status === 'connected' ? 'connected' : 'disconnected'
+    botGuildCount.value = data.guildCount
+  } catch (error: any) {
+    botError.value = error.response?.data?.message || '無法取得 Bot 資訊'
+    botStatus.value = 'unknown'
+  } finally {
+    isLoadingBot.value = false
+  }
 }
 
-const handleTestMessage = () => {
-  if (!testMessage.value.channelId || !testMessage.value.content) {
-    alert('請選擇頻道並輸入訊息內容')
+const loadGuilds = async () => {
+  isLoadingGuilds.value = true
+  guildError.value = null
+  try {
+    const data = await discordStore.fetchGuilds()
+    if (!selectedGuildId.value && data.length > 0) {
+      selectedGuildId.value = data[0].id
+    }
+  } catch (error: any) {
+    guildError.value = error.response?.data?.message || '載入伺服器列表失敗'
+  } finally {
+    isLoadingGuilds.value = false
+  }
+}
+
+const loadChannels = async (guildId: string) => {
+  if (!guildId) {
+    channelError.value = null
+    testChannelId.value = ''
+    channels.value = []
     return
   }
-
-  // Mock sending test message
-  alert('測試訊息已發送！')
-  testMessage.value.content = ''
+  isLoadingChannels.value = true
+  channelError.value = null
+  try {
+    await discordStore.fetchChannels(guildId, true)
+    if (!filteredChannels.value.some((channel) => channel.id === testChannelId.value)) {
+      testChannelId.value = ''
+    }
+  } catch (error: any) {
+    channelError.value = error.response?.data?.message || '載入頻道失敗'
+  } finally {
+    isLoadingChannels.value = false
+  }
 }
 
-const handleRefreshBot = () => {
-  alert('Bot 連接狀態已刷新')
+const refreshAll = async () => {
+  await Promise.all([loadBotInfo(), loadGuilds()])
 }
+
+const handleTestMessage = async () => {
+  if (!testChannelId.value || !testContent.value.trim()) {
+    testError.value = '請選擇頻道並輸入訊息內容'
+    return
+  }
+  testError.value = null
+  isSendingTest.value = true
+  try {
+    await discordApi.sendTestMessage(testChannelId.value, testContent.value.trim())
+    alert('測試訊息已發送')
+    testContent.value = ''
+  } catch (error: any) {
+    testError.value = error.response?.data?.message || '發送測試訊息失敗'
+  } finally {
+    isSendingTest.value = false
+  }
+}
+
+watch(selectedGuildId, (guildId) => {
+  loadChannels(guildId)
+})
+
+onMounted(async () => {
+  await refreshAll()
+  if (selectedGuildId.value) {
+    await loadChannels(selectedGuildId.value)
+  }
+})
 </script>
 
 <template>
   <div class="max-w-7xl mx-auto">
-    <!-- Header -->
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 mb-2">Discord 設定</h1>
-      <p class="text-gray-600">管理 Discord Bot 和伺服器設定</p>
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-8">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Discord 設定</h1>
+        <p class="text-gray-600">管理 Discord Bot 與伺服器頻道</p>
+      </div>
+      <button
+        type="button"
+        @click="refreshAll"
+        :disabled="isLoadingBot || isLoadingGuilds"
+        class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100 transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        <i class="bi bi-arrow-clockwise"></i>
+        重新整理
+      </button>
     </div>
 
-    <!-- Bot Status Card -->
-    <div class="bg-white rounded-2xl shadow-sm border-2 border-gray-200 p-8 mb-8">
-      <div class="flex items-center gap-3 mb-6">
-        <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
-          <i class="bi bi-robot text-indigo-600 text-2xl"></i>
-        </div>
-        <div class="flex-1">
-          <h2 class="text-xl font-bold text-gray-900">Bot 連接狀態</h2>
-          <p class="text-sm text-gray-600">Discord Bot 連線資訊</p>
-        </div>
-        <button
-          @click="handleRefreshBot"
-          class="p-3 hover:bg-gray-100 rounded-xl transition-all cursor-pointer hover:shadow-md"
-          title="刷新狀態"
-        >
-          <i class="bi bi-arrow-clockwise text-xl text-gray-600"></i>
-        </button>
-      </div>
-
-      <div class="flex items-center gap-6 p-6 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border-2 border-indigo-200">
-        <img
-          :src="botInfo.avatar"
-          alt="Bot Avatar"
-          class="w-20 h-20 rounded-2xl shadow-lg ring-4 ring-white"
-        >
-        <div class="flex-1">
-          <h3 class="text-xl font-bold text-gray-900 mb-2">
-            {{ botInfo.username }}#{{ botInfo.discriminator }}
-          </h3>
-          <div class="flex items-center gap-3">
-            <div
-              :class="[
-                'w-4 h-4 rounded-full ring-4',
-                botInfo.isConnected ? 'bg-green-500 ring-green-100' : 'bg-red-500 ring-red-100'
-              ]"
-            ></div>
-            <span :class="[
-              'text-sm font-bold',
-              botInfo.isConnected ? 'text-green-600' : 'text-red-600'
-            ]">
-              {{ botInfo.isConnected ? '已連接' : '未連接' }}
-            </span>
-          </div>
-        </div>
-        <div class="text-right bg-white px-6 py-3 rounded-xl border border-gray-200">
-          <p class="text-xs text-gray-500 mb-1">Bot ID</p>
-          <p class="text-sm font-mono font-bold text-gray-800">{{ botInfo.id }}</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-      <!-- Guilds List -->
-      <div class="bg-white rounded-2xl shadow-sm border-2 border-gray-200 p-8">
-        <div class="flex items-center gap-3 mb-6">
-          <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-            <i class="bi bi-buildings text-purple-600 text-2xl"></i>
+    <div class="bg-white border border-gray-200 rounded-lg p-6 mb-8">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center">
+            <i class="bi bi-robot text-gray-600 text-lg"></i>
           </div>
           <div>
-            <h2 class="text-xl font-bold text-gray-900">伺服器列表</h2>
-            <p class="text-sm text-gray-600">Bot 已加入 {{ guilds.length }} 個伺服器</p>
+            <h2 class="text-lg font-semibold text-gray-900">Bot 連線資訊</h2>
+            <p class="text-sm text-gray-600">檢視 Discord Bot 連線狀態與資訊</p>
           </div>
         </div>
+        <span v-if="botError" class="text-sm text-red-600">{{ botError }}</span>
+      </div>
 
-        <div class="space-y-3">
+      <div class="flex flex-col gap-6 sm:flex-row sm:items-center">
+        <div class="flex items-center gap-4 flex-1">
+          <img :src="avatarUrl" alt="Bot Avatar" class="w-16 h-16 rounded-xl border border-gray-200" />
+          <div>
+            <p class="text-lg font-semibold text-gray-900">
+              <span v-if="botInfo">{{ botInfo.username }}#{{ botInfo.discriminator }}</span>
+              <span v-else class="text-gray-500">未取得 Bot 資訊</span>
+            </p>
+            <div class="flex items-center gap-2 mt-2">
+              <span :class="['w-2.5 h-2.5 rounded-full', connectionBadgeClass]"></span>
+              <span class="text-sm text-gray-700">{{ connectionLabel }}</span>
+              <span v-if="isLoadingBot" class="text-xs text-gray-500">更新中...</span>
+            </div>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4 sm:w-auto">
+          <div class="bg-gray-50 border border-gray-200 rounded-md px-4 py-3">
+            <p class="text-xs text-gray-500">Bot ID</p>
+            <p class="text-sm font-mono text-gray-900 mt-1">
+              {{ botInfo?.id || '—' }}
+            </p>
+          </div>
+          <div class="bg-gray-50 border border-gray-200 rounded-md px-4 py-3">
+            <p class="text-xs text-gray-500">已加入伺服器</p>
+            <p class="text-sm font-semibold text-gray-900 mt-1">{{ botGuildCount }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-8 lg:grid-cols-2 mb-8">
+      <div class="bg-white border border-gray-200 rounded-lg p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center">
+            <i class="bi bi-buildings text-gray-600 text-lg"></i>
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900">伺服器列表</h2>
+            <p class="text-sm text-gray-600">共 {{ guilds.length }} 個伺服器</p>
+          </div>
+        </div>
+        <div v-if="guildError" class="mb-4 text-sm text-red-600">{{ guildError }}</div>
+        <div v-if="isLoadingGuilds" class="py-12 text-center text-sm text-gray-600">載入伺服器中...</div>
+        <div v-else-if="guilds.length === 0" class="py-12 text-center text-sm text-gray-500">
+          尚未連接任何伺服器
+        </div>
+        <div v-else class="space-y-2">
           <button
             v-for="guild in guilds"
             :key="guild.id"
-            @click="handleGuildSelect(guild.id)"
+            type="button"
+            @click="selectedGuildId = guild.id"
             :class="[
-              'w-full flex items-center gap-4 p-5 rounded-xl border-2 transition-all text-left cursor-pointer',
+              'w-full border rounded-md px-4 py-3 flex items-center gap-3 text-left transition-colors',
               selectedGuildId === guild.id
-                ? 'border-indigo-600 bg-gradient-to-r from-indigo-50 to-purple-50 shadow-lg'
-                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 hover:shadow-md'
+                ? 'border-gray-900 bg-gray-100'
+                : 'border-gray-300 hover:border-gray-400'
             ]"
           >
-            <div
-              :class="[
-                'w-14 h-14 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-md',
-                selectedGuildId === guild.id ? 'bg-indigo-600' : 'bg-purple-500'
-              ]"
-            >
-              <i class="bi bi-discord"></i>
-            </div>
             <div class="flex-1">
-              <h3 class="font-bold text-gray-900 mb-1">{{ guild.name }}</h3>
-              <div class="flex items-center gap-2 text-sm text-gray-600">
-                <i class="bi bi-people-fill"></i>
-                <span class="font-semibold">{{ guild.memberCount }} 位成員</span>
-              </div>
+              <p class="text-sm font-medium text-gray-900">{{ guild.name }}</p>
+              <p class="text-xs text-gray-500 mt-1">{{ guild.memberCount }} 位成員</p>
             </div>
             <i
               v-if="selectedGuildId === guild.id"
-              class="bi bi-check-circle-fill text-2xl text-indigo-600"
+              class="bi bi-check-circle-fill text-base text-gray-900"
             ></i>
           </button>
         </div>
       </div>
 
-      <!-- Channels List -->
-      <div class="bg-white rounded-2xl shadow-sm border-2 border-gray-200 p-8">
-        <div class="flex items-center gap-3 mb-6">
-          <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-            <i class="bi bi-hash text-blue-600 text-2xl"></i>
+      <div class="bg-white border border-gray-200 rounded-lg p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center">
+            <i class="bi bi-hash text-gray-600 text-lg"></i>
           </div>
           <div>
-            <h2 class="text-xl font-bold text-gray-900">頻道列表</h2>
+            <h2 class="text-lg font-semibold text-gray-900">頻道列表</h2>
             <p class="text-sm text-gray-600">
-              <span v-if="channels.length > 0">共 {{ channels.length }} 個頻道</span>
+              <span v-if="selectedGuild">{{ selectedGuild.name }} · {{ filteredChannels.length }} 個頻道</span>
               <span v-else>請選擇伺服器</span>
             </p>
           </div>
         </div>
-
-        <div v-if="!selectedGuildId" class="text-center py-16">
-          <div class="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <i class="bi bi-chat-dots text-6xl text-gray-400"></i>
-          </div>
-          <p class="text-gray-500 font-medium">請先選擇一個伺服器</p>
+        <div v-if="channelError" class="mb-4 text-sm text-red-600">{{ channelError }}</div>
+        <div v-if="!selectedGuildId" class="py-12 text-center text-sm text-gray-500">
+          請先選擇伺服器
         </div>
-
-        <div v-else-if="isLoadingChannels" class="text-center py-16">
-          <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-indigo-600 border-t-transparent mb-4"></div>
-          <p class="text-gray-500 font-medium">載入頻道中...</p>
+        <div v-else-if="isLoadingChannels" class="py-12 text-center text-sm text-gray-600">
+          載入頻道中...
         </div>
-
-        <div v-else class="space-y-2">
+        <div v-else-if="filteredChannels.length === 0" class="py-12 text-center text-sm text-gray-500">
+          目前沒有可發送訊息的文字頻道
+        </div>
+        <div v-else class="space-y-2 max-h-80 overflow-y-auto pr-1">
           <div
-            v-for="channel in channels"
+            v-for="channel in filteredChannels"
             :key="channel.id"
-            class="flex items-center gap-3 p-4 rounded-xl border-2 border-gray-200 hover:bg-gray-50 hover:border-gray-300 transition-all"
+            class="flex items-center gap-3 border border-gray-200 rounded-md px-4 py-3"
           >
-            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <i class="bi bi-chat-dots text-xl text-blue-600"></i>
+            <div class="w-8 h-8 bg-gray-100 rounded-md flex items-center justify-center">
+              <i class="bi bi-chat-dots text-gray-600 text-base"></i>
             </div>
             <div class="flex-1">
-              <h3 class="font-bold text-gray-900"># {{ channel.name }}</h3>
-              <p class="text-xs text-gray-500 font-mono">ID: {{ channel.id }}</p>
+              <p class="text-sm font-medium text-gray-900">#{{ channel.name }}</p>
+              <p class="text-xs text-gray-500 mt-1">ID：{{ channel.id }}</p>
             </div>
-            <div class="flex gap-2">
-              <span
-                v-if="channel.permissions.viewChannel"
-                class="px-3 py-1.5 bg-green-100 text-green-700 text-xs rounded-lg font-bold border border-green-200"
-                title="可檢視"
-              >
-                <i class="bi bi-eye-fill"></i>
+            <div class="flex items-center gap-2 text-xs text-gray-600">
+              <span v-if="channel.permissions?.viewChannel" class="px-2 py-1 border border-gray-300 rounded">
+                可檢視
               </span>
-              <span
-                v-if="channel.permissions.sendMessages"
-                class="px-3 py-1.5 bg-blue-100 text-blue-700 text-xs rounded-lg font-bold border border-blue-200"
-                title="可發送訊息"
-              >
-                <i class="bi bi-chat-dots-fill"></i>
+              <span v-if="channel.permissions?.sendMessages" class="px-2 py-1 border border-gray-300 rounded">
+                可發送
               </span>
             </div>
           </div>
@@ -278,57 +289,56 @@ const handleRefreshBot = () => {
       </div>
     </div>
 
-    <!-- Test Message Section -->
-    <div class="bg-white rounded-2xl shadow-sm border-2 border-gray-200 p-8">
-      <div class="flex items-center gap-3 mb-6">
-        <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-          <i class="bi bi-send text-green-600 text-2xl"></i>
+    <div class="bg-white border border-gray-200 rounded-lg p-6">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center">
+          <i class="bi bi-send text-gray-600 text-lg"></i>
         </div>
         <div>
-          <h2 class="text-xl font-bold text-gray-900">測試訊息</h2>
-          <p class="text-sm text-gray-600">發送測試訊息到指定頻道</p>
+          <h2 class="text-lg font-semibold text-gray-900">發送測試訊息</h2>
+          <p class="text-sm text-gray-600">向所選伺服器的頻道發送測試訊息</p>
         </div>
       </div>
 
-      <form @submit.prevent="handleTestMessage" class="space-y-6">
+      <form @submit.prevent="handleTestMessage" class="space-y-4 max-w-2xl">
         <div>
-          <label for="testChannel" class="block text-sm font-semibold text-gray-700 mb-3">
-            選擇頻道 <span class="text-red-500">*</span>
-          </label>
+          <label for="testChannel" class="block text-sm font-medium text-gray-700 mb-2">選擇頻道</label>
           <select
             id="testChannel"
-            v-model="testMessage.channelId"
-            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none cursor-pointer transition text-lg font-medium"
+            v-model="testChannelId"
+            :disabled="filteredChannels.length === 0"
+            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 disabled:bg-gray-100"
           >
             <option value="" disabled>請選擇頻道</option>
-            <option v-for="channel in channels" :key="channel.id" :value="channel.id">
-              # {{ channel.name }}
+            <option v-for="channel in filteredChannels" :key="channel.id" :value="channel.id">
+              #{{ channel.name }}
             </option>
           </select>
         </div>
-
         <div>
-          <label for="testContent" class="block text-sm font-semibold text-gray-700 mb-3">
-            訊息內容 <span class="text-red-500">*</span>
-          </label>
+          <label for="testContent" class="block text-sm font-medium text-gray-700 mb-2">訊息內容</label>
           <textarea
             id="testContent"
-            v-model="testMessage.content"
+            v-model="testContent"
             rows="4"
             maxlength="2000"
-            class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none resize-none transition"
-            placeholder="輸入測試訊息內容..."
+            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 resize-none"
+            placeholder="輸入要發送的訊息內容"
           ></textarea>
-          <p class="text-sm text-gray-500 mt-2">{{ testMessage.content.length }} / 2000 字元</p>
+          <p class="text-xs text-gray-500 mt-1">{{ testContent.length }} / 2000 字元</p>
         </div>
-
-        <button
-          type="submit"
-          class="w-full px-8 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all font-bold text-lg shadow-lg hover:shadow-xl cursor-pointer"
-        >
-          <i class="bi bi-send-fill mr-2"></i>
-          發送測試訊息
-        </button>
+        <div v-if="testError" class="text-sm text-red-600">{{ testError }}</div>
+        <div class="flex justify-end">
+          <button
+            type="submit"
+            :disabled="isSendingTest || filteredChannels.length === 0"
+            class="px-5 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            <i v-if="isSendingTest" class="bi bi-hourglass-split"></i>
+            <i v-else class="bi bi-send"></i>
+            發送測試訊息
+          </button>
+        </div>
       </form>
     </div>
   </div>

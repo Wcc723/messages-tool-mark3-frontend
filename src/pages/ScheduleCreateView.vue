@@ -17,6 +17,13 @@ type ScheduleStatus = 'draft' | 'active'
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5MB
 const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp']
 
+const formatLocalDate = (date: Date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 // Configure marked
 marked.setOptions({
   breaks: true, // 支援換行
@@ -110,8 +117,7 @@ onMounted(async () => {
       // Create mode: set default date to tomorrow
       const tomorrow = new Date()
       tomorrow.setDate(tomorrow.getDate() + 1)
-      const dateStr = tomorrow.toISOString().split('T')[0]
-      form.value.scheduledDate = dateStr || ''
+      form.value.scheduledDate = formatLocalDate(tomorrow)
 
       // Set default time to current time + 10 minutes
       const now = new Date()
@@ -319,7 +325,7 @@ const isFormValid = () => {
         </div>
         <button
           @click="handleCancel"
-          class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition cursor-pointer"
+          class="p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors cursor-pointer"
         >
           <i class="bi bi-x-lg text-xl"></i>
         </button>
@@ -332,20 +338,20 @@ const isFormValid = () => {
       class="space-y-6 max-w-6xl mx-auto pb-32"
     >
       <!-- 訊息內容區塊 -->
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+      <div class="bg-white rounded-lg border border-gray-200 p-6">
         <div class="flex items-center gap-3 mb-6">
-          <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
-            <i class="bi bi-chat-left-text text-indigo-600 text-2xl"></i>
+          <div class="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center">
+            <i class="bi bi-chat-left-text text-gray-600 text-lg"></i>
           </div>
           <div>
-            <h2 class="text-xl font-bold text-gray-900">訊息內容</h2>
+            <h2 class="text-lg font-semibold text-gray-900">訊息內容</h2>
             <p class="text-sm text-gray-600">設定要發送的訊息標題和內容</p>
           </div>
         </div>
 
         <div class="space-y-6">
           <div>
-            <label for="title" class="block text-sm font-semibold text-gray-700 mb-3">
+            <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
               排程標題 <span class="text-red-500">*</span>
             </label>
             <input
@@ -354,14 +360,14 @@ const isFormValid = () => {
               type="text"
               required
               maxlength="100"
-              class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-lg"
+              class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition"
               placeholder="例如：每週團隊會議提醒"
             />
             <p class="text-sm text-gray-500 mt-2">{{ form.title.length }} / 100 字元</p>
           </div>
 
           <div>
-            <label for="content" class="block text-sm font-semibold text-gray-700 mb-3">
+            <label for="content" class="block text-sm font-medium text-gray-700 mb-2">
               訊息內容 <span class="text-red-500">*</span>
             </label>
             <textarea
@@ -370,7 +376,7 @@ const isFormValid = () => {
               required
               maxlength="2000"
               rows="6"
-              class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none resize-none transition"
+              class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 resize-none transition"
               placeholder="輸入要發送到 Discord 的訊息內容..."
             ></textarea>
             <p class="text-sm text-gray-500 mt-2">{{ form.content.length }} / 2000 字元</p>
@@ -379,14 +385,14 @@ const isFormValid = () => {
           <!-- Preview Card -->
           <div
             v-if="form.title || form.content"
-            class="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-100"
+            class="bg-gray-50 rounded-lg p-5 border border-gray-200"
           >
-            <p class="text-sm font-semibold text-indigo-900 mb-3 flex items-center gap-2">
-              <i class="bi bi-eye"></i>
+            <p class="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+              <i class="bi bi-eye text-gray-600"></i>
               訊息預覽 (支援 Markdown)
             </p>
-            <div class="bg-white rounded-lg p-4 shadow-sm">
-              <h3 v-if="form.title" class="font-bold text-gray-900 mb-2">{{ form.title }}</h3>
+            <div class="bg-white rounded-md p-4 border border-gray-200">
+              <h3 v-if="form.title" class="font-semibold text-gray-900 mb-2">{{ form.title }}</h3>
               <div
                 v-if="form.content"
                 class="markdown-preview text-gray-700"
@@ -397,11 +403,9 @@ const isFormValid = () => {
           </div>
 
           <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-3">
-              圖片附件
-            </label>
+            <label class="block text-sm font-medium text-gray-700 mb-2"> 圖片附件 </label>
             <div
-              class="relative border-2 border-dashed border-gray-300 rounded-xl p-6 text-center bg-gray-50 hover:border-indigo-400 transition"
+              class="relative border border-dashed border-gray-300 rounded-lg p-5 text-center bg-gray-50 hover:border-gray-400 transition-colors"
             >
               <input
                 type="file"
@@ -412,14 +416,14 @@ const isFormValid = () => {
                 :disabled="isUploading"
               />
               <div class="space-y-2 pointer-events-none">
-                <i class="bi bi-cloud-arrow-up text-3xl text-indigo-500"></i>
-                <p class="font-semibold text-gray-700">拖曳或點擊上傳圖片</p>
+                <i class="bi bi-cloud-arrow-up text-3xl text-gray-500"></i>
+                <p class="font-medium text-gray-700">拖曳或點擊上傳圖片</p>
                 <p class="text-sm text-gray-500">
                   支援 PNG / JPG / JPEG / GIF / WEBP，單檔上限 5 MB
                 </p>
               </div>
             </div>
-            <p v-if="isUploading" class="text-sm text-indigo-600 mt-2 flex items-center gap-2">
+            <p v-if="isUploading" class="text-sm text-gray-600 mt-2 flex items-center gap-2">
               <i class="bi bi-hourglass-split"></i>
               圖片上傳中...
             </p>
@@ -431,22 +435,22 @@ const isFormValid = () => {
               <div
                 v-for="image in uploadedImages"
                 :key="image.imageId"
-                class="flex items-center gap-4 bg-white border border-gray-200 rounded-xl p-3"
+                class="flex items-center gap-4 bg-white border border-gray-200 rounded-lg p-3"
               >
                 <img
                   :src="image.firebaseUrl"
                   :alt="image.fileName"
-                  class="w-16 h-16 object-cover rounded-lg border"
+                  class="w-16 h-16 object-cover rounded-md border"
                 />
                 <div class="flex-1 text-left">
-                  <p class="font-medium text-gray-900">{{ image.fileName }}</p>
+                  <p class="text-sm font-medium text-gray-900">{{ image.fileName }}</p>
                   <p class="text-sm text-gray-500">
                     {{ formatFileSize(image.fileSize) }} · {{ image.mimeType }}
                   </p>
                 </div>
                 <button
                   type="button"
-                  class="text-red-500 hover:text-red-600 font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  class="text-red-600 hover:text-red-700 font-medium flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   @click="removeImage(image)"
                   :disabled="removingImageId === image.imageId"
                 >
@@ -461,75 +465,67 @@ const isFormValid = () => {
       </div>
 
       <!-- 發送設定區塊 -->
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+      <div class="bg-white rounded-lg border border-gray-200 p-6">
         <div class="flex items-center gap-3 mb-6">
-          <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-            <i class="bi bi-discord text-purple-600 text-2xl"></i>
+          <div class="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center">
+            <i class="bi bi-discord text-gray-600 text-lg"></i>
           </div>
           <div>
-            <h2 class="text-xl font-bold text-gray-900">發送設定</h2>
+            <h2 class="text-lg font-semibold text-gray-900">發送設定</h2>
             <p class="text-sm text-gray-600">選擇 Discord 頻道和時區</p>
           </div>
         </div>
 
         <div class="space-y-6">
           <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-3">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
               Discord 頻道 <span class="text-red-500">*</span>
             </label>
             <div class="relative">
-              <!-- Selected Channel Display / Dropdown Trigger -->
               <button
                 type="button"
                 @click="isChannelDropdownOpen = !isChannelDropdownOpen"
                 :class="[
-                  'w-full flex items-center justify-between px-4 py-3 border-2 rounded-xl transition-all',
+                  'w-full flex items-center justify-between px-4 py-3 border rounded-md transition-colors',
                   isChannelDropdownOpen
-                    ? 'border-purple-600 ring-2 ring-purple-500'
+                    ? 'border-gray-900 ring-2 ring-gray-900'
                     : selectedChannel
-                      ? 'border-purple-600 bg-purple-50'
-                      : 'border-gray-200 hover:border-gray-300',
+                      ? 'border-gray-900 bg-gray-100'
+                      : 'border-gray-300 hover:border-gray-400',
                 ]"
               >
                 <div class="flex items-center gap-3">
                   <div
                     :class="[
-                      'w-10 h-10 rounded-full flex items-center justify-center',
-                      selectedChannel ? 'bg-purple-600' : 'bg-gray-200',
+                      'w-10 h-10 rounded-md flex items-center justify-center',
+                      selectedChannel ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-500',
                     ]"
                   >
-                    <i
-                      :class="[
-                        'bi bi-hash text-xl',
-                        selectedChannel ? 'text-white' : 'text-gray-500',
-                      ]"
-                    ></i>
+                    <i class="bi bi-hash text-lg"></i>
                   </div>
                   <div class="text-left">
-                    <p v-if="selectedChannel" class="font-semibold text-gray-900">
+                    <p v-if="selectedChannel" class="font-medium text-gray-900">
                       {{ selectedChannel.name }}
                     </p>
-                    <p v-else class="text-gray-500">請選擇 Discord 頻道</p>
-                    <p v-if="selectedChannel" class="text-sm text-gray-500">
-                      ID: {{ selectedChannel.id }}
+                    <p v-else class="text-gray-500">請選擇要發送的頻道</p>
+                    <p v-if="selectedChannel?.topic" class="text-xs text-gray-500">
+                      {{ selectedChannel.topic }}
                     </p>
                   </div>
                 </div>
                 <i
                   :class="[
-                    'bi text-xl text-gray-500 transition-transform',
+                    'bi text-lg text-gray-500 transition-transform',
                     isChannelDropdownOpen ? 'bi-chevron-up' : 'bi-chevron-down',
                   ]"
                 ></i>
               </button>
 
-              <!-- Dropdown Menu -->
               <div
                 v-if="isChannelDropdownOpen"
-                class="absolute z-10 w-full mt-2 bg-white border-2 border-purple-600 rounded-xl shadow-xl"
+                class="absolute z-10 mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg"
               >
-                <!-- Search Input -->
-                <div class="p-3 border-b border-gray-200">
+                <div class="p-3 border-b border-gray-200 bg-gray-50">
                   <div class="relative">
                     <i
                       class="bi bi-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
@@ -538,62 +534,51 @@ const isFormValid = () => {
                       v-model="channelSearch"
                       type="text"
                       placeholder="搜尋頻道或分類..."
-                      class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                      class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 text-sm"
                       @click.stop
                     />
                   </div>
                 </div>
 
-                <!-- Channel List -->
-                <div class="max-h-80 overflow-y-auto">
+                <div class="max-h-72 overflow-y-auto">
                   <div
                     v-if="Object.keys(groupedChannels).length === 0"
-                    class="p-4 text-center text-gray-500"
+                    class="px-4 py-6 text-center text-sm text-gray-500"
                   >
                     找不到符合的頻道
                   </div>
-                  <div v-else>
+                  <div v-else class="divide-y divide-gray-100">
                     <div
                       v-for="(channelList, category) in groupedChannels"
                       :key="category"
-                      class="border-b border-gray-100 last:border-b-0"
+                      class="p-3"
                     >
-                      <div
-                        class="px-4 py-2 bg-gray-50 text-xs font-semibold text-gray-600 uppercase tracking-wider"
-                      >
-                        {{ category }}
-                      </div>
-                      <button
-                        v-for="channel in channelList"
-                        :key="channel.id"
-                        type="button"
-                        @click="selectChannel(channel.id)"
-                        :class="[
-                          'w-full flex items-center gap-3 px-4 py-3 hover:bg-purple-50 transition cursor-pointer',
-                          form.channelId === channel.id ? 'bg-purple-100' : '',
-                        ]"
-                      >
-                        <div
+                      <p class="text-xs uppercase tracking-wide text-gray-500 font-medium mb-2">
+                        {{ category === '未分類' ? '未分類' : category }}
+                      </p>
+                      <div class="space-y-1">
+                        <button
+                          v-for="channel in channelList"
+                          :key="channel.id"
+                          type="button"
+                          @click="selectChannel(channel.id)"
                           :class="[
-                            'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
-                            form.channelId === channel.id ? 'bg-purple-600' : 'bg-gray-200',
+                            'w-full px-3 py-2 rounded-md text-left flex items-center gap-3 transition-colors',
+                            form.channelId === channel.id
+                              ? 'bg-gray-100 text-gray-900'
+                              : 'hover:bg-gray-50 text-gray-700',
                           ]"
                         >
+                          <span class="text-sm font-medium">#{{ channel.name }}</span>
+                          <span v-if="channel.topic" class="text-xs text-gray-500 truncate">
+                            {{ channel.topic }}
+                          </span>
                           <i
-                            :class="[
-                              'bi bi-hash',
-                              form.channelId === channel.id ? 'text-white' : 'text-gray-500',
-                            ]"
+                            v-if="form.channelId === channel.id"
+                            class="bi bi-check-circle-fill text-gray-900 ml-auto text-base"
                           ></i>
-                        </div>
-                        <div class="flex-1 text-left">
-                          <p class="font-medium text-gray-900">{{ channel.name }}</p>
-                        </div>
-                        <i
-                          v-if="form.channelId === channel.id"
-                          class="bi bi-check-circle-fill text-purple-600"
-                        ></i>
-                      </button>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -601,39 +586,46 @@ const isFormValid = () => {
             </div>
           </div>
 
-          <div>
-            <label for="timezone" class="block text-sm font-semibold text-gray-700 mb-3">
-              時區設定
-            </label>
-            <select
-              id="timezone"
-              v-model="form.timezone"
-              class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none cursor-pointer transition"
-            >
-              <option v-for="tz in timezones" :key="tz.value" :value="tz.value">
-                {{ tz.label }}
-              </option>
-            </select>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="timezone" class="block text-sm font-medium text-gray-700 mb-2">
+                時區設定
+              </label>
+              <select
+                id="timezone"
+                v-model="form.timezone"
+                class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 cursor-pointer transition"
+              >
+                <option v-for="timezone in timezones" :key="timezone.value" :value="timezone.value">
+                  {{ timezone.label }}
+                </option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">選擇狀態</label>
+              <p class="text-sm text-gray-500">
+                {{ selectedChannel ? `已選擇：#${selectedChannel.name}` : '尚未選擇頻道' }}
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- 排程時間區塊 -->
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+      <div class="bg-white rounded-lg border border-gray-200 p-6">
         <div class="flex items-center gap-3 mb-6">
-          <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-            <i class="bi bi-calendar-event text-blue-600 text-2xl"></i>
+          <div class="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center">
+            <i class="bi bi-calendar-event text-gray-600 text-lg"></i>
           </div>
           <div>
-            <h2 class="text-xl font-bold text-gray-900">排程時間</h2>
+            <h2 class="text-lg font-semibold text-gray-900">排程時間</h2>
             <p class="text-sm text-gray-600">設定訊息的發送時間規則</p>
           </div>
         </div>
 
         <div class="space-y-6">
-          <!-- Schedule Type -->
           <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-3">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
               排程類型 <span class="text-red-500">*</span>
             </label>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -660,10 +652,10 @@ const isFormValid = () => {
                 ]"
                 :key="type.value"
                 :class="[
-                  'flex items-start p-4 border-2 rounded-xl cursor-pointer transition-all hover:border-blue-300 hover:shadow-md',
+                  'flex items-start gap-3 p-4 border rounded-md cursor-pointer transition-colors',
                   form.scheduleType === type.value
-                    ? 'border-blue-600 bg-blue-50 shadow-md'
-                    : 'border-gray-200 hover:bg-gray-50',
+                    ? 'border-gray-900 bg-gray-100'
+                    : 'border-gray-300 hover:border-gray-400',
                 ]"
               >
                 <input
@@ -675,33 +667,25 @@ const isFormValid = () => {
                 <i
                   :class="[
                     type.icon,
-                    'text-2xl mr-3 mt-1',
-                    form.scheduleType === type.value ? 'text-blue-600' : 'text-gray-400',
+                    'text-xl mt-1',
+                    form.scheduleType === type.value ? 'text-gray-900' : 'text-gray-500',
                   ]"
                 ></i>
                 <div class="flex-1">
-                  <p
-                    :class="[
-                      'font-semibold mb-1',
-                      form.scheduleType === type.value ? 'text-blue-600' : 'text-gray-900',
-                    ]"
-                  >
-                    {{ type.label }}
-                  </p>
+                  <p class="text-sm font-medium text-gray-900">{{ type.label }}</p>
                   <p class="text-xs text-gray-500">{{ type.desc }}</p>
                 </div>
                 <i
                   v-if="form.scheduleType === type.value"
-                  class="bi bi-check-circle-fill text-blue-600 text-lg ml-2"
+                  class="bi bi-check-circle-fill text-gray-900 text-base"
                 ></i>
               </label>
             </div>
           </div>
 
-          <!-- Date/Day Selection -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div v-if="form.scheduleType === 'once'">
-              <label for="scheduledDate" class="block text-sm font-semibold text-gray-700 mb-3">
+              <label for="scheduledDate" class="block text-sm font-medium text-gray-700 mb-2">
                 執行日期 <span class="text-red-500">*</span>
               </label>
               <input
@@ -709,12 +693,12 @@ const isFormValid = () => {
                 v-model="form.scheduledDate"
                 type="date"
                 required
-                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none cursor-pointer transition"
+                class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 cursor-pointer transition"
               />
             </div>
 
             <div v-if="form.scheduleType === 'weekly'" class="md:col-span-2">
-              <label class="block text-sm font-semibold text-gray-700 mb-3">
+              <label class="block text-sm font-medium text-gray-700 mb-2">
                 選擇星期 <span class="text-red-500">*</span>
               </label>
               <div class="grid grid-cols-7 gap-2">
@@ -722,10 +706,10 @@ const isFormValid = () => {
                   v-for="day in weekDays"
                   :key="day.value"
                   :class="[
-                    'flex flex-col items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition-all hover:border-blue-300',
+                    'flex flex-col items-center justify-center p-3 border rounded-md cursor-pointer transition-colors',
                     form.weekDay === day.value
-                      ? 'border-blue-600 bg-blue-600 text-white shadow-md'
-                      : 'border-gray-200 hover:bg-gray-50',
+                      ? 'border-gray-900 bg-gray-900 text-white'
+                      : 'border-gray-300 hover:bg-gray-50 text-gray-700',
                   ]"
                 >
                   <input
@@ -735,28 +719,27 @@ const isFormValid = () => {
                     class="sr-only"
                   />
                   <span class="text-xs mb-1">{{ day.label }}</span>
-                  <span class="text-lg font-bold">{{ day.short }}</span>
+                  <span class="text-lg font-semibold">{{ day.short }}</span>
                 </label>
               </div>
             </div>
 
             <div v-if="form.scheduleType === 'monthly'">
-              <label for="monthDay" class="block text-sm font-semibold text-gray-700 mb-3">
+              <label for="monthDay" class="block text-sm font-medium text-gray-700 mb-2">
                 每月幾號 <span class="text-red-500">*</span>
               </label>
               <select
                 id="monthDay"
                 v-model.number="form.monthDay"
                 required
-                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none cursor-pointer transition"
+                class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 cursor-pointer transition"
               >
                 <option v-for="day in 31" :key="day" :value="day">每月 {{ day }} 號</option>
               </select>
             </div>
 
-            <!-- Time Selection -->
             <div>
-              <label for="scheduledTime" class="block text-sm font-semibold text-gray-700 mb-3">
+              <label for="scheduledTime" class="block text-sm font-medium text-gray-700 mb-2">
                 執行時間 <span class="text-red-500">*</span>
               </label>
               <input
@@ -764,7 +747,7 @@ const isFormValid = () => {
                 v-model="form.scheduledTime"
                 type="time"
                 required
-                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none cursor-pointer transition text-lg"
+                class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 cursor-pointer transition"
               />
             </div>
           </div>
@@ -772,13 +755,13 @@ const isFormValid = () => {
       </div>
 
       <!-- 排程狀態區塊 -->
-      <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+      <div class="bg-white rounded-lg border border-gray-200 p-6">
         <div class="flex items-center gap-3 mb-6">
-          <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-            <i class="bi bi-toggle-on text-green-600 text-2xl"></i>
+          <div class="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center">
+            <i class="bi bi-toggle-on text-gray-600 text-lg"></i>
           </div>
           <div>
-            <h2 class="text-xl font-bold text-gray-900">排程狀態</h2>
+            <h2 class="text-lg font-semibold text-gray-900">排程狀態</h2>
             <p class="text-sm text-gray-600">選擇排程的初始狀態</p>
           </div>
         </div>
@@ -786,83 +769,55 @@ const isFormValid = () => {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <label
             :class="[
-              'flex items-center p-5 border-2 rounded-xl cursor-pointer transition-all hover:shadow-md',
+              'flex items-center gap-3 p-4 border rounded-md cursor-pointer transition-colors',
               form.status === 'draft'
-                ? 'border-gray-600 bg-gray-50 shadow-md'
-                : 'border-gray-200 hover:bg-gray-50 hover:border-gray-400',
+                ? 'border-gray-900 bg-gray-100'
+                : 'border-gray-300 hover:border-gray-400',
             ]"
           >
             <input v-model="form.status" type="radio" value="draft" class="sr-only" />
-            <div class="flex items-start gap-4 flex-1">
-              <div
-                :class="[
-                  'w-12 h-12 rounded-xl flex items-center justify-center',
-                  form.status === 'draft' ? 'bg-gray-600' : 'bg-gray-200',
-                ]"
-              >
-                <i
-                  :class="[
-                    'bi bi-file-earmark-text text-2xl',
-                    form.status === 'draft' ? 'text-white' : 'text-gray-500',
-                  ]"
-                ></i>
-              </div>
-              <div class="flex-1">
-                <p
-                  :class="[
-                    'font-bold text-lg mb-1',
-                    form.status === 'draft' ? 'text-gray-900' : 'text-gray-700',
-                  ]"
-                >
-                  儲存為草稿
-                </p>
-                <p class="text-sm text-gray-500">稍後再手動啟用排程</p>
-              </div>
+            <div
+              :class="[
+                'w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0',
+                form.status === 'draft' ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-500',
+              ]"
+            >
+              <i class="bi bi-file-earmark-text text-lg"></i>
+            </div>
+            <div class="flex-1">
+              <p class="text-sm font-medium text-gray-900">儲存為草稿</p>
+              <p class="text-xs text-gray-500">稍後再手動啟用排程</p>
             </div>
             <i
               v-if="form.status === 'draft'"
-              class="bi bi-check-circle-fill text-gray-600 text-2xl ml-2"
+              class="bi bi-check-circle-fill text-gray-900 text-base"
             ></i>
           </label>
 
           <label
             :class="[
-              'flex items-center p-5 border-2 rounded-xl cursor-pointer transition-all hover:shadow-md',
+              'flex items-center gap-3 p-4 border rounded-md cursor-pointer transition-colors',
               form.status === 'active'
-                ? 'border-green-600 bg-green-50 shadow-md'
-                : 'border-gray-200 hover:bg-gray-50 hover:border-green-400',
+                ? 'border-gray-900 bg-gray-100'
+                : 'border-gray-300 hover:border-gray-400',
             ]"
           >
             <input v-model="form.status" type="radio" value="active" class="sr-only" />
-            <div class="flex items-start gap-4 flex-1">
-              <div
-                :class="[
-                  'w-12 h-12 rounded-xl flex items-center justify-center',
-                  form.status === 'active' ? 'bg-green-600' : 'bg-gray-200',
-                ]"
-              >
-                <i
-                  :class="[
-                    'bi bi-play-circle-fill text-2xl',
-                    form.status === 'active' ? 'text-white' : 'text-gray-500',
-                  ]"
-                ></i>
-              </div>
-              <div class="flex-1">
-                <p
-                  :class="[
-                    'font-bold text-lg mb-1',
-                    form.status === 'active' ? 'text-gray-900' : 'text-gray-700',
-                  ]"
-                >
-                  立即啟用
-                </p>
-                <p class="text-sm text-gray-500">建立後立即開始自動發送</p>
-              </div>
+            <div
+              :class="[
+                'w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0',
+                form.status === 'active' ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-500',
+              ]"
+            >
+              <i class="bi bi-play-circle-fill text-lg"></i>
+            </div>
+            <div class="flex-1">
+              <p class="text-sm font-medium text-gray-900">立即啟用</p>
+              <p class="text-xs text-gray-500">建立後立即開始自動發送</p>
             </div>
             <i
               v-if="form.status === 'active'"
-              class="bi bi-check-circle-fill text-green-600 text-2xl ml-2"
+              class="bi bi-check-circle-fill text-gray-900 text-base"
             ></i>
           </label>
         </div>
@@ -871,13 +826,13 @@ const isFormValid = () => {
 
     <!-- Submit Actions - Full Width -->
     <div
-      class="sticky bottom-0 left-0 right-0 -mb-6 -mx-6 bg-white border-t-2 border-gray-200 shadow-2xl z-2"
+      class="sticky bottom-0 left-0 right-0 -mb-6 -mx-6 bg-white border-t border-gray-200 shadow-md"
     >
-      <div class="max-w-6xl mx-auto px-6 py-6 space-y-3 flex">
+      <div class="max-w-6xl mx-auto px-4 py-4 flex items-center gap-3">
         <button
           type="button"
           @click="handleCancel"
-          class="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition font-semibold cursor-pointer"
+          class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100 transition-colors font-medium cursor-pointer"
         >
           <i class="bi bi-x-circle mr-2"></i>
           取消
@@ -888,15 +843,25 @@ const isFormValid = () => {
           form="schedule-form"
           :disabled="!isFormValid() || isSubmitting"
           :class="[
-            'px-8 py-3 rounded-xl font-bold text-lg transition shadow-lg ml-auto',
+            'px-5 py-2 rounded-md font-medium transition-colors ml-auto flex items-center justify-center gap-2',
             isFormValid() && !isSubmitting
-              ? 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-xl cursor-pointer'
+              ? 'bg-gray-900 text-white hover:bg-gray-800 cursor-pointer'
               : 'bg-gray-300 text-gray-500 cursor-not-allowed',
           ]"
         >
-          <i v-if="isSubmitting" class="bi bi-hourglass-split mr-2"></i>
-          <i v-else class="bi bi-check-circle-fill mr-2"></i>
-          {{ isSubmitting ? (isEditMode ? '更新中...' : '建立中...') : (isEditMode ? '更新排程' : '建立排程') }}
+          <i v-if="isSubmitting" class="bi bi-hourglass-split"></i>
+          <i v-else class="bi bi-check-circle-fill"></i>
+          <span>
+            {{
+              isSubmitting
+                ? isEditMode
+                  ? '更新中...'
+                  : '建立中...'
+                : isEditMode
+                  ? '更新排程'
+                  : '建立排程'
+            }}
+          </span>
         </button>
       </div>
     </div>
