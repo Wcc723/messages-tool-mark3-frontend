@@ -73,7 +73,10 @@ const loadGuilds = async () => {
   try {
     const data = await discordStore.fetchGuilds()
     if (!selectedGuildId.value && data.length > 0) {
-      selectedGuildId.value = data[0].id
+      const firstGuild = data[0]
+      if (firstGuild) {
+        selectedGuildId.value = firstGuild.id
+      }
     }
   } catch (error: any) {
     guildError.value = error.response?.data?.message || '載入伺服器列表失敗'

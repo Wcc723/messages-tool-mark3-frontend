@@ -105,7 +105,47 @@
         ],
         "responses": {
           "200": {
-            "description": "成功取得使用者列表"
+            "description": "成功取得使用者列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "users": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/AdminUser"
+                          }
+                        },
+                        "pagination": {
+                          "type": "object",
+                          "properties": {
+                            "currentPage": {
+                              "type": "integer"
+                            },
+                            "totalPages": {
+                              "type": "integer"
+                            },
+                            "totalCount": {
+                              "type": "integer"
+                            },
+                            "limit": {
+                              "type": "integer"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
             "description": "未認證"
@@ -143,7 +183,22 @@
         ],
         "responses": {
           "200": {
-            "description": "成功取得使用者詳情"
+            "description": "成功取得使用者詳情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/AdminUser"
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
             "description": "未認證"
@@ -2667,14 +2722,16 @@
             "type": "string",
             "description": "使用者姓名"
           },
-          "role": {
-            "type": "string",
-            "enum": [
-              "admin",
-              "user"
-            ],
-            "description": "使用者角色"
-          },
+        "role": {
+          "type": "string",
+          "enum": [
+            "super_admin",
+            "admin",
+            "manager",
+            "no_permission"
+          ],
+          "description": "使用者角色"
+        },
           "avatar": {
             "type": "string",
             "description": "使用者頭像 URL"
@@ -2759,6 +2816,26 @@
             }
           }
         }
+      },
+      "AdminUser": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/User"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "isActive": {
+                "type": "boolean",
+                "description": "使用者是否為啟用狀態"
+              },
+              "scheduleLimit": {
+                "type": "integer",
+                "description": "使用者可建立的排程數量上限"
+              }
+            }
+          }
+        ]
       },
       "DiscordBot": {
         "type": "object",

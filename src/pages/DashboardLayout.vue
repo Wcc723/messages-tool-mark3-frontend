@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import SidebarNav from '@/components/SidebarNav.vue'
+import RoleBadge from '@/components/RoleBadge.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
@@ -101,6 +102,9 @@ const handleLogout = async () => {
               <div class="text-left hidden md:block">
                 <p class="text-sm font-medium text-gray-700">{{ userProfile?.name || '訪客' }}</p>
                 <p class="text-xs text-gray-500">{{ userProfile?.email || '' }}</p>
+                <div v-if="userProfile?.role" class="mt-1">
+                  <RoleBadge :role="userProfile.role" />
+                </div>
               </div>
               <i class="bi bi-chevron-down text-gray-500"></i>
             </button>

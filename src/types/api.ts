@@ -1,3 +1,5 @@
+import type { Role } from './permission'
+
 // API Response Types based on OpenAPI spec
 
 export interface ApiResponse<T = unknown> {
@@ -11,9 +13,10 @@ export interface User {
   id: string
   email: string
   name: string
-  role: 'admin' | 'user'
+  role: Role
   avatar?: string
   createdAt: string
+  updatedAt?: string
 }
 
 // Auth Types

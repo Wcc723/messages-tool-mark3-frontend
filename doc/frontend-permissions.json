@@ -47,7 +47,8 @@
         "showScheduleCalendar": true,
         "showScheduleStatus": true,
         "showDiscord": true,
-        "showProfile": true
+        "showProfile": true,
+        "showUserManagement": true
       },
       "routes": {
         "allowedPaths": [
@@ -57,7 +58,8 @@
           "/dashboard/schedule/calendar",
           "/dashboard/schedule/status",
           "/dashboard/discord",
-          "/dashboard/profile"
+          "/dashboard/profile",
+          "/dashboard/admin/users"
         ]
       }
     },
@@ -108,7 +110,8 @@
         "showScheduleCalendar": true,
         "showScheduleStatus": true,
         "showDiscord": true,
-        "showProfile": true
+        "showProfile": true,
+        "showUserManagement": true
       },
       "routes": {
         "allowedPaths": [
@@ -118,7 +121,8 @@
           "/dashboard/schedule/calendar",
           "/dashboard/schedule/status",
           "/dashboard/discord",
-          "/dashboard/profile"
+          "/dashboard/profile",
+          "/dashboard/admin/users"
         ]
       }
     },
@@ -169,7 +173,8 @@
         "showScheduleCalendar": true,
         "showScheduleStatus": true,
         "showDiscord": true,
-        "showProfile": true
+        "showProfile": true,
+        "showUserManagement": false
       },
       "routes": {
         "allowedPaths": [
@@ -231,7 +236,8 @@
         "showScheduleCalendar": false,
         "showScheduleStatus": false,
         "showDiscord": false,
-        "showProfile": true
+        "showProfile": true,
+        "showUserManagement": false
       },
       "routes": {
         "allowedPaths": [

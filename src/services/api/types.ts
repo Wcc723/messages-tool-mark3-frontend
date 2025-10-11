@@ -1,3 +1,5 @@
+import type { Role } from '@/types/permission'
+
 // ============================================
 // 基礎回應格式
 // ============================================
@@ -23,9 +25,10 @@ export interface User {
   id: string
   email: string
   name: string
-  role: 'admin' | 'user'
+  role: Role
   avatar?: string
   createdAt: string
+  updatedAt?: string
 }
 
 export interface LoginRequest {
@@ -37,6 +40,16 @@ export interface RegisterRequest {
   email: string
   password: string
   name: string
+}
+
+export interface AdminUser extends User {
+  isActive: boolean
+  scheduleLimit: number
+}
+
+export interface UsersListResponse {
+  users: AdminUser[]
+  pagination: PaginationMeta
 }
 
 export interface AuthResponse {
