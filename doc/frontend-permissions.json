@@ -1,0 +1,251 @@
+{
+  "roles": {
+    "super_admin": {
+      "displayName": "系統管理員",
+      "description": "系統最高管理員，擁有所有權限",
+      "features": {
+        "users": {
+          "canView": true,
+          "canViewAll": true,
+          "canCreate": true,
+          "canEdit": true,
+          "canEditAll": true,
+          "canDelete": true,
+          "canManageRoles": true
+        },
+        "schedules": {
+          "canView": true,
+          "canViewAll": true,
+          "canCreate": true,
+          "canEdit": true,
+          "canEditAll": true,
+          "canDelete": true,
+          "canDeleteAll": true
+        },
+        "discord": {
+          "canView": true,
+          "canViewAll": true,
+          "canSendMessage": true,
+          "canManageBot": true
+        },
+        "images": {
+          "canView": true,
+          "canViewAll": true,
+          "canUpload": true,
+          "canDelete": true,
+          "canDeleteAll": true
+        },
+        "system": {
+          "canViewLogs": true,
+          "canViewDashboard": true,
+          "canManageSettings": true
+        }
+      },
+      "navigation": {
+        "showScheduleNew": true,
+        "showScheduleEdit": true,
+        "showScheduleCalendar": true,
+        "showScheduleStatus": true,
+        "showDiscord": true,
+        "showProfile": true
+      },
+      "routes": {
+        "allowedPaths": [
+          "/dashboard",
+          "/dashboard/schedule/new",
+          "/dashboard/schedule/edit/:id",
+          "/dashboard/schedule/calendar",
+          "/dashboard/schedule/status",
+          "/dashboard/discord",
+          "/dashboard/profile"
+        ]
+      }
+    },
+    "admin": {
+      "displayName": "管理員",
+      "description": "管理員，可管理使用者和系統設定",
+      "features": {
+        "users": {
+          "canView": true,
+          "canViewAll": true,
+          "canCreate": true,
+          "canEdit": true,
+          "canEditAll": true,
+          "canDelete": true,
+          "canManageRoles": true
+        },
+        "schedules": {
+          "canView": true,
+          "canViewAll": true,
+          "canCreate": true,
+          "canEdit": true,
+          "canEditAll": true,
+          "canDelete": true,
+          "canDeleteAll": true
+        },
+        "discord": {
+          "canView": true,
+          "canViewAll": true,
+          "canSendMessage": true,
+          "canManageBot": false
+        },
+        "images": {
+          "canView": true,
+          "canViewAll": true,
+          "canUpload": true,
+          "canDelete": true,
+          "canDeleteAll": true
+        },
+        "system": {
+          "canViewLogs": true,
+          "canViewDashboard": true,
+          "canManageSettings": false
+        }
+      },
+      "navigation": {
+        "showScheduleNew": true,
+        "showScheduleEdit": true,
+        "showScheduleCalendar": true,
+        "showScheduleStatus": true,
+        "showDiscord": true,
+        "showProfile": true
+      },
+      "routes": {
+        "allowedPaths": [
+          "/dashboard",
+          "/dashboard/schedule/new",
+          "/dashboard/schedule/edit/:id",
+          "/dashboard/schedule/calendar",
+          "/dashboard/schedule/status",
+          "/dashboard/discord",
+          "/dashboard/profile"
+        ]
+      }
+    },
+    "manager": {
+      "displayName": "訊息管理員",
+      "description": "Discord 訊息管理員，可管理自己的排程",
+      "features": {
+        "users": {
+          "canView": true,
+          "canViewAll": false,
+          "canCreate": false,
+          "canEdit": true,
+          "canEditAll": false,
+          "canDelete": false,
+          "canManageRoles": false
+        },
+        "schedules": {
+          "canView": true,
+          "canViewAll": false,
+          "canCreate": true,
+          "canEdit": true,
+          "canEditAll": false,
+          "canDelete": true,
+          "canDeleteAll": false
+        },
+        "discord": {
+          "canView": true,
+          "canViewAll": false,
+          "canSendMessage": true,
+          "canManageBot": false
+        },
+        "images": {
+          "canView": true,
+          "canViewAll": false,
+          "canUpload": true,
+          "canDelete": true,
+          "canDeleteAll": false
+        },
+        "system": {
+          "canViewLogs": false,
+          "canViewDashboard": false,
+          "canManageSettings": false
+        }
+      },
+      "navigation": {
+        "showScheduleNew": true,
+        "showScheduleEdit": true,
+        "showScheduleCalendar": true,
+        "showScheduleStatus": true,
+        "showDiscord": true,
+        "showProfile": true
+      },
+      "routes": {
+        "allowedPaths": [
+          "/dashboard",
+          "/dashboard/schedule/new",
+          "/dashboard/schedule/edit/:id",
+          "/dashboard/schedule/calendar",
+          "/dashboard/schedule/status",
+          "/dashboard/discord",
+          "/dashboard/profile"
+        ]
+      }
+    },
+    "no_permission": {
+      "displayName": "無權限",
+      "description": "無權限使用者，僅能查看個人資料",
+      "color": "#6B7280",
+      "features": {
+        "users": {
+          "canView": true,
+          "canViewAll": false,
+          "canCreate": false,
+          "canEdit": true,
+          "canEditAll": false,
+          "canDelete": false,
+          "canManageRoles": false
+        },
+        "schedules": {
+          "canView": false,
+          "canViewAll": false,
+          "canCreate": false,
+          "canEdit": false,
+          "canEditAll": false,
+          "canDelete": false,
+          "canDeleteAll": false
+        },
+        "discord": {
+          "canView": false,
+          "canViewAll": false,
+          "canSendMessage": false,
+          "canManageBot": false
+        },
+        "images": {
+          "canView": false,
+          "canViewAll": false,
+          "canUpload": false,
+          "canDelete": false,
+          "canDeleteAll": false
+        },
+        "system": {
+          "canViewLogs": false,
+          "canViewDashboard": false,
+          "canManageSettings": false
+        }
+      },
+      "navigation": {
+        "showScheduleNew": false,
+        "showScheduleEdit": false,
+        "showScheduleCalendar": false,
+        "showScheduleStatus": false,
+        "showDiscord": false,
+        "showProfile": true
+      },
+      "routes": {
+        "allowedPaths": [
+          "/dashboard",
+          "/dashboard/profile"
+        ]
+      }
+    }
+  },
+  "featureDescriptions": {
+    "users": "使用者管理",
+    "schedules": "排程管理",
+    "discord": "Discord 整合",
+    "images": "圖片管理",
+    "system": "系統管理"
+  }
+}
