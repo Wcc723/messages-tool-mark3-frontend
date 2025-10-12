@@ -12,6 +12,9 @@ export const useAuthStore = defineStore('auth', () => {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
+  // Prevent duplicate fetchProfile calls
+  let fetchProfilePromise: Promise<boolean> | null = null
+
   // Getters
   const isAuthenticated = computed(() => !!token.value && !!user.value)
 
@@ -147,23 +150,33 @@ export const useAuthStore = defineStore('auth', () => {
   async function fetchProfile() {
     if (!token.value) return
 
+    // If already fetching, return the existing promise
+    if (fetchProfilePromise) {
+      return fetchProfilePromise
+    }
+
     isLoading.value = true
     error.value = null
 
-    try {
-      const userData = await authApi.getProfile()
-      user.value = userData
-      return true
-    } catch (err: any) {
-      error.value = err.message || '取得使用者資料失敗'
-      // If unauthorized, clear auth state
-      if (err.message?.includes('未認證') || err.message?.includes('401')) {
-        await logout()
+    fetchProfilePromise = (async () => {
+      try {
+        const userData = await authApi.getProfile()
+        user.value = userData
+        return true
+      } catch (err: any) {
+        error.value = err.message || '取得使用者資料失敗'
+        // If unauthorized, clear auth state
+        if (err.message?.includes('未認證') || err.message?.includes('401')) {
+          await logout()
+        }
+        throw err
+      } finally {
+        isLoading.value = false
+        fetchProfilePromise = null
       }
-      throw err
-    } finally {
-      isLoading.value = false
-    }
+    })()
+
+    return fetchProfilePromise
   }
 
   async function refreshAuthToken(): Promise<string | null> {

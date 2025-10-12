@@ -6,7 +6,12 @@ import { usePermissionStore } from '@/stores/permission'
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    redirect: '/login',
+    name: 'Root',
+    component: () => import('@/pages/LoginView.vue'),
+    meta: {
+      requiresAuth: false,
+      isRootRedirect: true,
+    },
   },
   {
     path: '/login',
@@ -27,10 +32,12 @@ const routes: RouteRecordRaw[] = [
     children: [
       {
         path: '',
-        redirect: '/dashboard/schedule/new',
+        name: 'DashboardHome',
+        component: () => import('@/pages/DashboardLayout.vue'),
         meta: {
           requiresAuth: true,
           permissionPath: '/dashboard',
+          isDashboardRedirect: true,
         },
       },
       {
@@ -111,6 +118,23 @@ router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
   const permissionStore = usePermissionStore()
 
+  // Handle root path redirect - must redirect before any other checks
+  if (to.meta.isRootRedirect) {
+    if (authStore.token) {
+      try {
+        if (!authStore.user) {
+          await authStore.fetchProfile()
+        }
+        const fallback = permissionStore.currentRoleConfig?.routes.allowedPaths[0] ?? '/dashboard/profile'
+        return next({ path: fallback, replace: true })
+      } catch {
+        await authStore.logout()
+        return next({ name: 'Login', replace: true })
+      }
+    }
+    return next({ name: 'Login', replace: true })
+  }
+
   const isPublicRoute = PUBLIC_ROUTES.has(to.path)
   const requiresAuth = to.meta.requiresAuth ?? !isPublicRoute
 
@@ -122,7 +146,8 @@ router.beforeEach(async (to, from, next) => {
         }
       } catch (error) {
         await authStore.logout()
-        return next({ name: 'Login' })
+        // Don't redirect, just continue to login page to avoid loop
+        return next()
       }
 
       const fallback = permissionStore.currentRoleConfig?.routes.allowedPaths[0] ?? '/dashboard'
@@ -148,14 +173,27 @@ router.beforeEach(async (to, from, next) => {
     }
   }
 
+  // Handle /dashboard root redirect - must redirect before permission check
+  if (to.meta.isDashboardRedirect) {
+    const allowedPaths = permissionStore.currentRoleConfig?.routes.allowedPaths || []
+    // Find first non-dashboard path, or fallback to /dashboard/profile
+    const targetPath = allowedPaths.find(path => path !== '/dashboard') || '/dashboard/profile'
+    return next({ path: targetPath, replace: true })
+  }
+
+  // Check route permissions
   const permissionPath = (to.meta.permissionPath as string) || to.path
 
   if (!permissionStore.canAccessRoute(permissionPath)) {
-    const fallback = permissionStore.currentRoleConfig?.routes.allowedPaths[0]
-    if (fallback) {
-      return next({ path: fallback })
+    const allowedPaths = permissionStore.currentRoleConfig?.routes.allowedPaths || []
+    const fallback = allowedPaths.find(path => path !== '/dashboard') || allowedPaths[0]
+
+    if (fallback && fallback !== to.path) {
+      return next({ path: fallback, replace: true })
     }
 
+    // No valid routes available, logout and redirect to login
+    await authStore.logout()
     return next({ name: 'Login' })
   }
 

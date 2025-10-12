@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import SidebarNav from '@/components/SidebarNav.vue'
 import RoleBadge from '@/components/RoleBadge.vue'
@@ -10,52 +10,18 @@ const authStore = useAuthStore()
 
 const isSidebarOpen = ref(true)
 const isUserMenuOpen = ref(false)
-const isCheckingAuth = ref(true)
 
 const userProfile = computed(() => authStore.user)
-
-const redirectToLogin = (message: string) => {
-  authStore.clearError()
-  authStore.error = message
-  router.replace({ name: 'Login' })
-}
-
-const ensureAuthenticated = async () => {
-  isCheckingAuth.value = true
-
-  try {
-    if (!authStore.token) {
-      throw new Error('缺少 token')
-    }
-
-    if (!authStore.user) {
-      await authStore.fetchProfile()
-    }
-
-    if (!authStore.user) {
-      throw new Error('未取得使用者資料')
-    }
-  } catch (error) {
-    console.error('Dashboard auth guard failed:', error)
-    redirectToLogin('請先登入以使用儀表板')
-  } finally {
-    isCheckingAuth.value = false
-  }
-}
-
-onMounted(() => {
-  ensureAuthenticated()
-})
 
 const handleLogout = async () => {
   isUserMenuOpen.value = false
   await authStore.logout()
-  redirectToLogin('您已登出，請重新登入')
+  router.replace({ name: 'Login' })
 }
 </script>
 
 <template>
-  <div v-if="!isCheckingAuth" class="min-h-screen bg-gray-100">
+  <div class="min-h-screen bg-gray-100">
     <!-- Sidebar -->
     <aside
       :class="[
@@ -138,11 +104,5 @@ const handleLogout = async () => {
         <router-view />
       </main>
     </div>
-  </div>
-  <div
-    v-else
-    class="min-h-screen bg-gray-100 flex items-center justify-center text-gray-600"
-  >
-    驗證登入狀態中...
   </div>
 </template>
