@@ -24,6 +24,18 @@ const formatLocalDate = (date: Date) => {
   return `${year}-${month}-${day}`
 }
 
+const formatLocalDateTimeInput = (isoString: string | null | undefined) => {
+  if (!isoString) return ''
+  const date = new Date(isoString)
+  if (Number.isNaN(date.getTime())) return ''
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day}T${hours}:${minutes}`
+}
+
 // Configure marked
 marked.setOptions({
   breaks: true, // 支援換行
@@ -55,6 +67,7 @@ const form = ref({
   channelId: '',
   timezone: 'Asia/Taipei',
   status: 'draft' as ScheduleStatus,
+  validUntil: '',
 })
 
 // Data from stores
@@ -149,6 +162,7 @@ async function loadSchedule(id: string) {
       channelId: schedule.channelId,
       timezone: schedule.timezone,
       status: schedule.status as ScheduleStatus,
+      validUntil: formatLocalDateTimeInput(schedule.validUntil),
     }
     uploadedImages.value = schedule.attachments?.images
       ? schedule.attachments.images.map((image) => ({
@@ -184,11 +198,18 @@ function buildPayload() {
     payload.monthDay = form.value.monthDay
   }
 
-  payload.attachments = {
-    images: uploadedImages.value.map((image) => ({
-      ...image,
-      discordUrl: image.discordUrl ?? null,
-    })),
+  const attachmentImages = uploadedImages.value.map((image) => ({
+    ...image,
+    discordUrl: image.discordUrl ?? null,
+  }))
+
+  payload.attachments = attachmentImages.length ? { images: attachmentImages } : null
+
+  if (form.value.validUntil) {
+    const validUntilDate = new Date(form.value.validUntil)
+    if (!Number.isNaN(validUntilDate.getTime())) {
+      payload.validUntil = validUntilDate.toISOString()
+    }
   }
 
   return payload
@@ -275,7 +296,7 @@ async function removeImage(image: ScheduleAttachmentImage) {
 
 // Handle form submission
 async function handleSubmit() {
-  if (!isFormValid()) return
+  if (!validateForm({ alertOnError: true })) return
 
   isSubmitting.value = true
 
@@ -303,12 +324,51 @@ const handleCancel = () => {
   router.push('/dashboard/schedule/calendar')
 }
 
-const isFormValid = () => {
-  return (
-    form.value.title.trim() !== '' &&
-    form.value.content.trim() !== '' &&
-    form.value.channelId !== ''
-  )
+const validateForm = ({ alertOnError = false } = {}) => {
+  const fail = (message: string) => {
+    if (alertOnError) {
+      alert(message)
+    }
+    return false
+  }
+
+  if (form.value.title.trim() === '') {
+    return fail('請輸入排程標題')
+  }
+
+  if (form.value.content.trim() === '') {
+    return fail('請輸入訊息內容')
+  }
+
+  if (form.value.channelId === '') {
+    return fail('請選擇要發送的 Discord 頻道')
+  }
+
+  if (form.value.scheduleType !== 'once') {
+    if (!form.value.validUntil) {
+      return fail('請設定排程的截止時間')
+    }
+
+    const validUntilDate = new Date(form.value.validUntil)
+    if (Number.isNaN(validUntilDate.getTime())) {
+      return fail('截止時間格式不正確，請重新選擇')
+    }
+
+    if (validUntilDate <= new Date()) {
+      return fail('截止時間需晚於現在時間')
+    }
+  } else if (form.value.validUntil) {
+    const validUntilDate = new Date(form.value.validUntil)
+    if (Number.isNaN(validUntilDate.getTime())) {
+      return fail('截止時間格式不正確，請重新選擇')
+    }
+
+    if (validUntilDate <= new Date()) {
+      return fail('截止時間需晚於現在時間')
+    }
+  }
+
+  return true
 }
 </script>
 
@@ -750,6 +810,23 @@ const isFormValid = () => {
                 class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 cursor-pointer transition"
               />
             </div>
+
+            <div v-if="form.scheduleType !== 'once'" class="md:col-span-2">
+              <label for="validUntil" class="block text-sm font-medium text-gray-700 mb-2">
+                截止時間 <span class="text-red-500">*</span>
+              </label>
+              <input
+                id="validUntil"
+                v-model="form.validUntil"
+                type="datetime-local"
+                required
+                step="60"
+                class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 cursor-pointer transition"
+              />
+              <p class="text-xs text-gray-500 mt-2">
+                截止時間後排程將自動停用，請至少設定為未來的時間。
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -841,10 +918,10 @@ const isFormValid = () => {
         <button
           type="submit"
           form="schedule-form"
-          :disabled="!isFormValid() || isSubmitting"
+          :disabled="!validateForm() || isSubmitting"
           :class="[
             'px-5 py-2 rounded-md font-medium transition-colors ml-auto flex items-center justify-center gap-2',
-            isFormValid() && !isSubmitting
+            validateForm() && !isSubmitting
               ? 'bg-gray-900 text-white hover:bg-gray-800 cursor-pointer'
               : 'bg-gray-300 text-gray-500 cursor-not-allowed',
           ]"

@@ -81,11 +81,11 @@
             "schema": {
               "type": "string",
               "enum": [
-                "super_admin",
                 "admin",
                 "manager",
                 "no_permission"
-              ]
+              ],
+              "description": "super_admin 角色只能透過環境變數設定"
             }
           },
           {
@@ -105,47 +105,7 @@
         ],
         "responses": {
           "200": {
-            "description": "成功取得使用者列表",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "users": {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/components/schemas/AdminUser"
-                          }
-                        },
-                        "pagination": {
-                          "type": "object",
-                          "properties": {
-                            "currentPage": {
-                              "type": "integer"
-                            },
-                            "totalPages": {
-                              "type": "integer"
-                            },
-                            "totalCount": {
-                              "type": "integer"
-                            },
-                            "limit": {
-                              "type": "integer"
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
+            "description": "成功取得使用者列表"
           },
           "401": {
             "description": "未認證"
@@ -183,22 +143,7 @@
         ],
         "responses": {
           "200": {
-            "description": "成功取得使用者詳情",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "data": {
-                      "$ref": "#/components/schemas/AdminUser"
-                    }
-                  }
-                }
-              }
-            }
+            "description": "成功取得使用者詳情"
           },
           "401": {
             "description": "未認證"
@@ -352,11 +297,11 @@
                   "role": {
                     "type": "string",
                     "enum": [
-                      "super_admin",
                       "admin",
                       "manager",
                       "no_permission"
-                    ]
+                    ],
+                    "description": "super_admin 角色只能透過環境變數 SUPER_ADMIN_EMAILS 設定，無法透過 API 賦予"
                   }
                 }
               }
@@ -583,6 +528,77 @@
           },
           "403": {
             "description": "權限不足（僅 Super Admin）"
+          },
+          "500": {
+            "description": "伺服器錯誤"
+          }
+        }
+      }
+    },
+    "/api/admin/roles/assignable": {
+      "get": {
+        "summary": "取得可賦予的角色列表",
+        "description": "根據當前使用者的角色，返回該使用者可以賦予給其他使用者的角色列表",
+        "tags": [
+          "Admin"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功取得可賦予的角色列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "currentRole": {
+                          "type": "string"
+                        },
+                        "assignableRoles": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "value": {
+                                "type": "string"
+                              },
+                              "label": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "note": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未認證"
+          },
+          "403": {
+            "description": "權限不足"
           },
           "500": {
             "description": "伺服器錯誤"
@@ -1419,7 +1435,8 @@
     },
     "/api/images": {
       "get": {
-        "summary": "列出使用者上傳的圖片",
+        "summary": "列出圖片（團隊存取）",
+        "description": "Super Admin/Admin/Manager 可查看所有圖片，支援 userId 參數篩選特定使用者的圖片",
         "tags": [
           "Images"
         ],
@@ -1446,6 +1463,15 @@
               "default": 20
             },
             "description": "每頁筆數"
+          },
+          {
+            "in": "query",
+            "name": "userId",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "篩選特定使用者的圖片 (Super Admin/Admin/Manager 可用)"
           },
           {
             "in": "query",
@@ -1695,7 +1721,8 @@
         }
       },
       "delete": {
-        "summary": "刪除單一圖片",
+        "summary": "刪除單一圖片（權限控制）",
+        "description": "Super Admin/Admin 可刪除任何圖片，Manager 僅能刪除自己的圖片",
         "tags": [
           "Images"
         ],
@@ -1742,7 +1769,7 @@
             "description": "未認證"
           },
           "403": {
-            "description": "無權限刪除"
+            "description": "無權限刪除此圖片"
           },
           "404": {
             "description": "圖片不存在"
@@ -1755,7 +1782,8 @@
     },
     "/api/images/batch-delete": {
       "post": {
-        "summary": "批次刪除圖片",
+        "summary": "批次刪除圖片（權限控制）",
+        "description": "Super Admin/Admin 可刪除任何圖片，Manager 僅能刪除自己的圖片",
         "tags": [
           "Images"
         ],
@@ -1903,7 +1931,8 @@
         }
       },
       "get": {
-        "summary": "取得使用者排程列表",
+        "summary": "取得排程列表（團隊存取）",
+        "description": "Super Admin/Admin/Manager 可查看所有排程，支援 userId 參數篩選特定使用者的排程",
         "tags": [
           "Schedules"
         ],
@@ -1952,6 +1981,15 @@
               "type": "string"
             },
             "description": "搜尋關鍵字 (搜尋標題和內容)"
+          },
+          {
+            "in": "query",
+            "name": "userId",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "篩選特定使用者的排程 (Super Admin/Admin/Manager 可用)"
           }
         ],
         "responses": {
@@ -2045,7 +2083,8 @@
     },
     "/api/schedules/{id}": {
       "get": {
-        "summary": "取得特定排程詳情",
+        "summary": "取得特定排程詳情（團隊存取）",
+        "description": "Super Admin/Admin/Manager 都可讀取任何排程",
         "tags": [
           "Schedules"
         ],
@@ -2088,13 +2127,17 @@
           "401": {
             "description": "未認證"
           },
+          "403": {
+            "description": "無權限存取此排程"
+          },
           "404": {
-            "description": "排程不存在或無權限存取"
+            "description": "排程不存在"
           }
         }
       },
       "patch": {
-        "summary": "部分更新排程",
+        "summary": "部分更新排程（權限控制）",
+        "description": "Super Admin/Admin 可修改任何排程，Manager 僅能修改自己的排程",
         "tags": [
           "Schedules"
         ],
@@ -2184,13 +2227,21 @@
                       "Europe/London"
                     ]
                   },
+                  "validUntil": {
+                    "type": "string",
+                    "format": "date-time",
+                    "nullable": true,
+                    "description": "排程有效期限\n- 週排程和月排程不可設為 null\n- 單次排程可設為 null 清除期限\n",
+                    "example": "2025-12-31T23:59:59Z"
+                  },
                   "status": {
                     "type": "string",
                     "enum": [
                       "draft",
                       "active",
                       "paused",
-                      "completed"
+                      "completed",
+                      "expired"
                     ],
                     "description": "排程狀態"
                   }
@@ -2227,13 +2278,17 @@
           "401": {
             "description": "未認證"
           },
+          "403": {
+            "description": "無權限修改此排程"
+          },
           "404": {
-            "description": "排程不存在或無權限存取"
+            "description": "排程不存在"
           }
         }
       },
       "delete": {
-        "summary": "刪除排程",
+        "summary": "刪除排程（權限控制）",
+        "description": "Super Admin/Admin 可刪除任何排程，Manager 僅能刪除自己的排程",
         "tags": [
           "Schedules"
         ],
@@ -2276,15 +2331,19 @@
           "401": {
             "description": "未認證"
           },
+          "403": {
+            "description": "無權限刪除此排程"
+          },
           "404": {
-            "description": "排程不存在或無權限存取"
+            "description": "排程不存在"
           }
         }
       }
     },
     "/api/schedules/{id}/status": {
       "patch": {
-        "summary": "更新排程狀態",
+        "summary": "更新排程狀態（權限控制）",
+        "description": "Super Admin/Admin 可修改任何排程狀態，Manager 僅能修改自己的排程",
         "tags": [
           "Schedules"
         ],
@@ -2321,7 +2380,8 @@
                       "draft",
                       "active",
                       "paused",
-                      "completed"
+                      "completed",
+                      "expired"
                     ],
                     "description": "新的排程狀態"
                   }
@@ -2358,15 +2418,19 @@
           "401": {
             "description": "未認證"
           },
+          "403": {
+            "description": "無權限修改此排程狀態"
+          },
           "404": {
-            "description": "排程不存在或無權限存取"
+            "description": "排程不存在"
           }
         }
       }
     },
     "/api/schedules/{id}/logs": {
       "get": {
-        "summary": "取得排程執行記錄",
+        "summary": "取得排程執行記錄（團隊存取）",
+        "description": "Super Admin/Admin/Manager 都可讀取任何排程的執行記錄",
         "tags": [
           "Schedules"
         ],
@@ -2452,8 +2516,11 @@
           "401": {
             "description": "未認證"
           },
+          "403": {
+            "description": "無權限存取此排程"
+          },
           "404": {
-            "description": "排程不存在或無權限存取"
+            "description": "排程不存在"
           }
         }
       }
@@ -2722,16 +2789,14 @@
             "type": "string",
             "description": "使用者姓名"
           },
-        "role": {
-          "type": "string",
-          "enum": [
-            "super_admin",
-            "admin",
-            "manager",
-            "no_permission"
-          ],
-          "description": "使用者角色"
-        },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "user"
+            ],
+            "description": "使用者角色"
+          },
           "avatar": {
             "type": "string",
             "description": "使用者頭像 URL"
@@ -2816,26 +2881,6 @@
             }
           }
         }
-      },
-      "AdminUser": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/User"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "isActive": {
-                "type": "boolean",
-                "description": "使用者是否為啟用狀態"
-              },
-              "scheduleLimit": {
-                "type": "integer",
-                "description": "使用者可建立的排程數量上限"
-              }
-            }
-          }
-        ]
       },
       "DiscordBot": {
         "type": "object",
@@ -3079,15 +3124,22 @@
               }
             }
           },
+          "validUntil": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "排程有效期限。週排程和月排程必填，單次排程選填"
+          },
           "status": {
             "type": "string",
             "enum": [
               "draft",
               "active",
               "paused",
-              "completed"
+              "completed",
+              "expired"
             ],
-            "description": "排程狀態"
+            "description": "排程狀態 (expired 表示已超過有效期限)"
           },
           "lastExecutedAt": {
             "type": "string",
@@ -3182,6 +3234,12 @@
               "America/New_York",
               "Europe/London"
             ]
+          },
+          "validUntil": {
+            "type": "string",
+            "format": "date-time",
+            "description": "排程有效期限 (ISO 8601 格式，UTC 時間)\n- 週排程和月排程: **必填**\n- 單次排程: 選填\n設定後排程將在此時間後自動過期，不再執行\n",
+            "example": "2025-12-31T23:59:59Z"
           },
           "attachments": {
             "type": "object",

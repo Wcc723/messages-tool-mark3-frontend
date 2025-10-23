@@ -205,6 +205,7 @@ export const useScheduleStore = defineStore('schedule', () => {
         monthDay: schedule.monthDay,
         channelId: schedule.channelId,
         timezone: schedule.timezone,
+        validUntil: schedule.validUntil,
         status: 'draft',
       })
 

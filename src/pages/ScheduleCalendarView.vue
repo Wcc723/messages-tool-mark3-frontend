@@ -18,6 +18,48 @@ const viewMode = ref<ViewMode>('calendar')
 
 // Get schedules from store
 const schedules = computed(() => scheduleStore.schedules)
+
+// 格式化日期為 YYYY-MM-DD
+const formatLocalDate = (date: Date) => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+// 檢查排程是否應該在指定日期顯示
+const shouldShowScheduleOnDate = (schedule: Schedule, targetDate: Date) => {
+  const dateStr = formatLocalDate(targetDate)
+  const day = targetDate.getDate()
+  const weekDay = targetDate.getDay()
+
+  // 檢查 validUntil 截止日期（週期性排程必須檢查）
+  if (schedule.validUntil) {
+    const validUntilDate = new Date(schedule.validUntil)
+    // 如果目標日期超過截止日期，不顯示
+    if (targetDate > validUntilDate) {
+      return false
+    }
+  }
+
+  // 單次排程：比對 scheduledDate
+  if (schedule.scheduleType === 'once') {
+    return schedule.scheduledDate === dateStr
+  }
+
+  // 週排程：比對 weekDay
+  if (schedule.scheduleType === 'weekly') {
+    return schedule.weekDay === weekDay
+  }
+
+  // 月排程：比對 monthDay
+  if (schedule.scheduleType === 'monthly') {
+    return schedule.monthDay === day
+  }
+
+  return false
+}
+
 const searchKeyword = ref('')
 const statusFilter = ref<ScheduleStatus | ''>('')
 const isFiltering = ref(false)
@@ -35,11 +77,17 @@ const selectedDate = ref<Date | null>(null)
 const showScheduleModal = ref(false)
 const modalSchedule = ref<Schedule | null>(null)
 
-const formatLocalDate = (date: Date) => {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+const formatDateTime = (isoString?: string | null) => {
+  if (!isoString) return ''
+  const date = new Date(isoString)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleString('zh-TW', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 const isSelectedDay = (day: number | null) => {
@@ -84,28 +132,12 @@ const calendarDays = computed(() => {
 
   // Add days of the month
   for (let day = 1; day <= totalDays; day++) {
-    const dateStr = `${currentYear.value}-${String(currentMonth.value + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    const targetDate = new Date(currentYear.value, currentMonth.value, day)
 
     // Filter schedules for this day
-    const daySchedules = schedules.value.filter((s) => {
-      // once type: match scheduledDate
-      if (s.scheduleType === 'once') {
-        return s.scheduledDate === dateStr
-      }
-
-      // weekly type: match weekDay
-      if (s.scheduleType === 'weekly') {
-        const date = new Date(currentYear.value, currentMonth.value, day)
-        return date.getDay() === s.weekDay
-      }
-
-      // monthly type: match monthDay
-      if (s.scheduleType === 'monthly') {
-        return s.monthDay === day
-      }
-
-      return false
-    })
+    const daySchedules = schedules.value.filter((schedule) =>
+      shouldShowScheduleOnDate(schedule, targetDate)
+    )
 
     days.push({ day, schedules: daySchedules })
   }
@@ -116,22 +148,9 @@ const calendarDays = computed(() => {
 const selectedDateSchedules = computed(() => {
   if (!selectedDate.value) return []
 
-  const dateStr = formatLocalDate(selectedDate.value)
-  const day = selectedDate.value.getDate()
-  const weekDay = selectedDate.value.getDay()
-
-  return schedules.value.filter((s) => {
-    if (s.scheduleType === 'once') {
-      return s.scheduledDate === dateStr
-    }
-    if (s.scheduleType === 'weekly') {
-      return s.weekDay === weekDay
-    }
-    if (s.scheduleType === 'monthly') {
-      return s.monthDay === day
-    }
-    return false
-  })
+  return schedules.value.filter((schedule) =>
+    shouldShowScheduleOnDate(schedule, selectedDate.value!)
+  )
 })
 
 const previousMonth = () => {
@@ -408,10 +427,18 @@ const handleDelete = async (id: string) => {
                   v-for="schedule in dayData.schedules.slice(0, 2)"
                   :key="schedule.id"
                   @click.stop="openScheduleModal(schedule)"
-                  class="text-xs px-2 py-1 bg-white/80 border border-gray-200 rounded truncate font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                  class="text-xs px-2 py-1 bg-white/80 border border-gray-200 rounded font-medium text-gray-700 hover:bg-gray-100 transition-colors flex items-center gap-1 min-w-0"
                   :title="schedule.title"
                 >
-                  <i class="bi bi-clock mr-1"></i>{{ schedule.scheduledTime.slice(0, 5) }} {{ schedule.title }}
+                  <i class="bi bi-clock text-gray-500 flex-shrink-0"></i>
+                  <i
+                    v-if="schedule.scheduleType !== 'once'"
+                    class="bi bi-arrow-repeat text-gray-500 flex-shrink-0"
+                    title="循環排程"
+                  ></i>
+                  <span class="truncate">
+                    {{ schedule.scheduledTime.slice(0, 5) }} {{ schedule.title }}
+                  </span>
                 </div>
                 <div v-if="dayData.schedules.length > 2" class="text-xs text-gray-600 font-semibold px-2">
                   <i class="bi bi-three-dots"></i> +{{ dayData.schedules.length - 2 }} 更多
@@ -689,6 +716,16 @@ const handleDelete = async (id: string) => {
                   <p class="font-medium">日期</p>
                 </div>
                 <p class="text-sm font-medium text-gray-900">{{ modalSchedule.scheduledDate }}</p>
+              </div>
+              <div v-if="modalSchedule.validUntil" class="bg-white rounded-lg p-4 border border-gray-200">
+                <div class="flex items-center gap-2 mb-1 text-xs text-gray-500 uppercase tracking-wide">
+                  <i class="bi bi-calendar-minus text-gray-500"></i>
+                  <p class="font-medium">截止時間</p>
+                </div>
+                <p class="text-sm font-medium text-gray-900">
+                  {{ formatDateTime(modalSchedule.validUntil) }}
+                </p>
+                <p class="text-xs text-gray-500 mt-1">超過此時間後排程將不再執行。</p>
               </div>
               <div class="bg-white rounded-lg p-4 border border-gray-200">
                 <div class="flex items-center gap-2 mb-1 text-xs text-gray-500 uppercase tracking-wide">

@@ -155,6 +155,7 @@ export interface Schedule {
   monthDay?: number // 1-31 (monthly only)
   channelId: string
   timezone: string
+  validUntil?: string
   attachments?: ScheduleAttachments | null
   status: ScheduleStatus
   lastExecutedAt?: string
@@ -173,6 +174,7 @@ export interface ScheduleCreateRequest {
   monthDay?: number // 1-31 (monthly only)
   channelId: string
   timezone?: string
+  validUntil?: string
   attachments?: ScheduleAttachments | null
   status?: 'draft' | 'active'
 }
@@ -187,6 +189,7 @@ export interface ScheduleUpdateRequest {
   monthDay?: number
   channelId?: string
   timezone?: string
+  validUntil?: string
   attachments?: ScheduleAttachments | null
   status?: ScheduleStatus
 }
