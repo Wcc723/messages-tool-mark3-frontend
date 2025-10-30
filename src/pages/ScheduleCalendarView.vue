@@ -251,15 +251,9 @@ const handleEdit = (id: string) => {
   router.push(`/dashboard/schedule/edit/${id}`)
 }
 
-const handleDuplicate = async (schedule: Schedule) => {
-  try {
-    const duplicated = await scheduleStore.duplicateSchedule(schedule)
-    // 導向編輯頁面，草稿狀態
-    router.push(`/dashboard/schedule/edit/${duplicated.id}`)
-  } catch (error: any) {
-    console.error('Failed to duplicate schedule:', error)
-    alert(error.response?.data?.message || '複製排程失敗')
-  }
+const handleDuplicate = (schedule: Schedule) => {
+  scheduleStore.setCopiedSchedule(schedule)
+  router.push('/dashboard/schedule/new')
 }
 
 const handleDelete = async (id: string) => {

@@ -1,30 +1,57 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { storeToRefs } from 'pinia'
+import { marked } from 'marked'
 import { useRouter, useRoute } from 'vue-router'
 import { useDiscordStore } from '@/stores/discord'
 import { useScheduleStore } from '@/stores/schedule'
 import type { ScheduleType, Timezone, ScheduleAttachmentImage } from '@/services/api'
 import { storageApi } from '@/services/api'
-import { marked } from 'marked'
 
 const router = useRouter()
 const route = useRoute()
 const discordStore = useDiscordStore()
 const scheduleStore = useScheduleStore()
+const { copiedScheduleData } = storeToRefs(scheduleStore)
 
 type ScheduleStatus = 'draft' | 'active'
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024 // 5MB
 const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp']
 
-const formatLocalDate = (date: Date) => {
+function buildDefaultForm() {
+  const today = new Date()
+  const defaultDate = formatLocalDate(today)
+
+  const now = new Date()
+  now.setMinutes(now.getMinutes() + 10)
+  const hours = String(now.getHours()).padStart(2, '0')
+  const minutes = String(now.getMinutes()).padStart(2, '0')
+  const defaultTime = `${hours}:${minutes}`
+
+  return {
+    title: '',
+    content: '',
+    scheduleType: 'once' as ScheduleType,
+    scheduledTime: defaultTime,
+    scheduledDate: defaultDate,
+    weekDay: 1,
+    monthDay: 1,
+    channelId: '',
+    timezone: 'Asia/Taipei',
+    status: 'draft' as ScheduleStatus,
+    validUntil: '',
+  }
+}
+
+function formatLocalDate(date: Date) {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
 }
 
-const formatLocalDateTimeInput = (isoString: string | null | undefined) => {
+function formatLocalDateTimeInput(isoString: string | null | undefined) {
   if (!isoString) return ''
   const date = new Date(isoString)
   if (Number.isNaN(date.getTime())) return ''
@@ -56,19 +83,7 @@ const uploadError = ref<string | null>(null)
 const uploadedImages = ref<ScheduleAttachmentImage[]>([])
 
 // Form data
-const form = ref({
-  title: '',
-  content: '',
-  scheduleType: 'once' as ScheduleType,
-  scheduledTime: '09:00',
-  scheduledDate: '',
-  weekDay: 1,
-  monthDay: 1,
-  channelId: '',
-  timezone: 'Asia/Taipei',
-  status: 'draft' as ScheduleStatus,
-  validUntil: '',
-})
+const form = ref(buildDefaultForm())
 
 // Data from stores
 const timezones = computed(() => scheduleStore.timezones)
@@ -120,24 +135,21 @@ const selectChannel = (channelId: string) => {
 // Load initial data
 onMounted(async () => {
   try {
-    // Load channels and timezones in parallel
-    await Promise.all([discordStore.fetchChannels(), scheduleStore.fetchTimezones()])
+    const fetchChannelsPromise = discordStore.channels.length
+      ? Promise.resolve()
+      : discordStore.fetchChannels()
+    const fetchTimezonesPromise = scheduleStore.timezones.length
+      ? Promise.resolve()
+      : scheduleStore.fetchTimezones()
 
-    // Edit mode: load existing schedule
+    await Promise.all([fetchChannelsPromise, fetchTimezonesPromise])
+
     if (isEditMode.value && scheduleId.value) {
       await loadSchedule(scheduleId.value)
+    } else if (copiedScheduleData.value) {
+      loadCopiedSchedule()
     } else {
-      // Create mode: set default date to tomorrow
-      const tomorrow = new Date()
-      tomorrow.setDate(tomorrow.getDate() + 1)
-      form.value.scheduledDate = formatLocalDate(tomorrow)
-
-      // Set default time to current time + 10 minutes
-      const now = new Date()
-      now.setMinutes(now.getMinutes() + 10)
-      const hours = String(now.getHours()).padStart(2, '0')
-      const minutes = String(now.getMinutes()).padStart(2, '0')
-      form.value.scheduledTime = `${hours}:${minutes}`
+      form.value = buildDefaultForm()
       uploadedImages.value = []
     }
   } catch (error: any) {
@@ -145,6 +157,36 @@ onMounted(async () => {
     alert(error.response?.data?.message || '載入資料失敗')
   }
 })
+
+function loadCopiedSchedule() {
+  if (!copiedScheduleData.value) return
+
+  const defaults = buildDefaultForm()
+  const copied = copiedScheduleData.value
+
+  form.value = {
+    title: copied.title ?? '',
+    content: copied.content ?? '',
+    scheduleType: (copied.scheduleType ?? defaults.scheduleType) as ScheduleType,
+    scheduledTime: defaults.scheduledTime,
+    scheduledDate: defaults.scheduledDate,
+    weekDay: copied.weekDay ?? defaults.weekDay,
+    monthDay: copied.monthDay ?? defaults.monthDay,
+    channelId: copied.channelId ?? defaults.channelId,
+    timezone: copied.timezone ?? defaults.timezone,
+    status: 'draft',
+    validUntil: '',
+  }
+
+  uploadedImages.value = copied.attachments?.images
+    ? copied.attachments.images.map((image) => ({
+        ...image,
+        discordUrl: image.discordUrl ?? null,
+      }))
+    : []
+
+  scheduleStore.clearCopiedSchedule()
+}
 
 // Load schedule for editing
 async function loadSchedule(id: string) {

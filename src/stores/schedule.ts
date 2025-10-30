@@ -14,6 +14,7 @@ export const useScheduleStore = defineStore('schedule', () => {
   // State
   const schedules = ref<Schedule[]>([])
   const currentSchedule = ref<Schedule | null>(null)
+  const copiedScheduleData = ref<Partial<Schedule> | null>(null)
   const timezones = ref<Timezone[]>([])
   const isLoading = ref(false)
   const error = ref<string | null>(null)
@@ -188,38 +189,27 @@ export const useScheduleStore = defineStore('schedule', () => {
   }
 
   /**
-   * 複製排程
+   * 暫存複製排程資料
    */
-  async function duplicateSchedule(schedule: Schedule) {
-    isLoading.value = true
-    error.value = null
-
-    try {
-      const newSchedule = await scheduleApi.createSchedule({
-        title: `${schedule.title} (複本)`,
-        content: schedule.content,
-        scheduleType: schedule.scheduleType,
-        scheduledTime: schedule.scheduledTime,
-        scheduledDate: schedule.scheduledDate,
-        weekDay: schedule.weekDay,
-        monthDay: schedule.monthDay,
-        channelId: schedule.channelId,
-        timezone: schedule.timezone,
-        validUntil: schedule.validUntil,
-        status: 'draft',
-      })
-
-      // 將複製的排程加到列表前端
-      schedules.value.unshift(newSchedule)
-      pagination.value.totalCount++
-
-      return newSchedule
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '複製排程失敗'
-      throw err
-    } finally {
-      isLoading.value = false
+  function setCopiedSchedule(schedule: Schedule) {
+    copiedScheduleData.value = {
+      title: schedule.title,
+      content: schedule.content,
+      scheduleType: schedule.scheduleType,
+      weekDay: schedule.weekDay,
+      monthDay: schedule.monthDay,
+      channelId: schedule.channelId,
+      timezone: schedule.timezone,
+      attachments: schedule.attachments,
+      status: 'draft',
     }
+  }
+
+  /**
+   * 清除暫存複製資料
+   */
+  function clearCopiedSchedule() {
+    copiedScheduleData.value = null
   }
 
   /**
@@ -283,6 +273,7 @@ export const useScheduleStore = defineStore('schedule', () => {
   function reset() {
     schedules.value = []
     currentSchedule.value = null
+    copiedScheduleData.value = null
     timezones.value = []
     error.value = null
     pagination.value = {
@@ -297,6 +288,7 @@ export const useScheduleStore = defineStore('schedule', () => {
     // State
     schedules,
     currentSchedule,
+    copiedScheduleData,
     timezones,
     isLoading,
     error,
@@ -308,7 +300,8 @@ export const useScheduleStore = defineStore('schedule', () => {
     updateSchedule,
     updateScheduleStatus,
     deleteSchedule,
-    duplicateSchedule,
+    setCopiedSchedule,
+    clearCopiedSchedule,
     fetchTimezones,
     fetchScheduleLogs,
     clearCurrentSchedule,
