@@ -115,7 +115,7 @@ const filteredChannels = computed(() => {
 const groupedChannels = computed(() => {
   const groups: Record<string, typeof discordStore.textChannels> = {}
   filteredChannels.value.forEach((channel) => {
-    const category = channel.parentId || '未分類'
+    const category = channel.parentName || '未分類'
     if (!groups[category]) groups[category] = []
     groups[category].push(channel)
   })

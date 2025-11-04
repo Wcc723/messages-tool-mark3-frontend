@@ -90,6 +90,7 @@ export interface DiscordChannel {
   type: number
   position: number
   parentId?: string
+  parentName?: string
   topic?: string
   nsfw?: boolean
   permissions?: {

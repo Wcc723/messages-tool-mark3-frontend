@@ -20,7 +20,7 @@ export const useDiscordStore = defineStore('discord', () => {
     const grouped: Record<string, DiscordChannel[]> = {}
 
     channels.value.forEach((channel) => {
-      const category = channel.parentId || '未分類'
+      const category = channel.parentName || '未分類'
       if (!grouped[category]) {
         grouped[category] = []
       }
@@ -45,11 +45,7 @@ export const useDiscordStore = defineStore('discord', () => {
     const now = Date.now()
 
     // 檢查快取（只在未強制刷新時）
-    if (
-      !forceRefresh &&
-      channels.value.length > 0 &&
-      now - cacheTimestamp.value < CACHE_DURATION
-    ) {
+    if (!forceRefresh && channels.value.length > 0 && now - cacheTimestamp.value < CACHE_DURATION) {
       return channels.value
     }
 
