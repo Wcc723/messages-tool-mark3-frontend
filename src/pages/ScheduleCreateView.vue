@@ -671,7 +671,9 @@ const validateForm = ({ alertOnError = false } = {}) => {
                               : 'hover:bg-gray-50 text-gray-700',
                           ]"
                         >
-                          <span class="text-sm font-medium">#{{ channel.name }}</span>
+                          <span class="text-sm font-medium whitespace-nowrap"
+                            >#{{ channel.name }}</span
+                          >
                           <span v-if="channel.topic" class="text-xs text-gray-500 truncate">
                             {{ channel.topic }}
                           </span>
