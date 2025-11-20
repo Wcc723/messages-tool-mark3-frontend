@@ -1203,6 +1203,15 @@
                     "type": "string",
                     "maxLength": 2000,
                     "description": "測試訊息內容"
+                  },
+                  "threadConfig": {
+                    "allOf": [
+                      {
+                        "$ref": "#/components/schemas/ThreadConfig"
+                      }
+                    ],
+                    "nullable": true,
+                    "description": "子討論串配置（選填）"
                   }
                 }
               }
@@ -1224,7 +1233,57 @@
                       "type": "string"
                     },
                     "data": {
-                      "$ref": "#/components/schemas/DiscordMessage"
+                      "type": "object",
+                      "properties": {
+                        "messageId": {
+                          "type": "string",
+                          "description": "訊息 ID"
+                        },
+                        "channelId": {
+                          "type": "string",
+                          "description": "頻道 ID"
+                        },
+                        "guildId": {
+                          "type": "string",
+                          "description": "伺服器 ID"
+                        },
+                        "content": {
+                          "type": "string",
+                          "description": "訊息內容"
+                        },
+                        "timestamp": {
+                          "type": "integer",
+                          "description": "訊息時間戳記"
+                        },
+                        "url": {
+                          "type": "string",
+                          "description": "訊息連結"
+                        },
+                        "threadId": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "Thread ID（如果建立了 thread）"
+                        },
+                        "threadUrl": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "Thread URL（如果建立了 thread）"
+                        },
+                        "threadStatus": {
+                          "type": "string",
+                          "enum": [
+                            "success",
+                            "failed",
+                            "not_configured"
+                          ],
+                          "description": "Thread 建立狀態"
+                        },
+                        "threadError": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "Thread 建立錯誤訊息（如果失敗）"
+                        }
+                      }
                     }
                   }
                 }
@@ -3124,6 +3183,15 @@
               }
             }
           },
+          "threadConfig": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ThreadConfig"
+              }
+            ],
+            "nullable": true,
+            "description": "子討論串配置"
+          },
           "validUntil": {
             "type": "string",
             "format": "date-time",
@@ -3300,6 +3368,15 @@
               }
             }
           },
+          "threadConfig": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ThreadConfig"
+              }
+            ],
+            "nullable": true,
+            "description": "子討論串配置"
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -3349,6 +3426,32 @@
           "discordMessageId": {
             "type": "string",
             "description": "Discord 訊息 ID"
+          },
+          "threadId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Discord Thread ID"
+          },
+          "threadUrl": {
+            "type": "string",
+            "nullable": true,
+            "description": "Discord Thread URL"
+          },
+          "threadStatus": {
+            "type": "string",
+            "enum": [
+              "success",
+              "failed",
+              "skipped",
+              "not_configured"
+            ],
+            "nullable": true,
+            "description": "Thread 建立狀態"
+          },
+          "threadError": {
+            "type": "string",
+            "nullable": true,
+            "description": "Thread 建立錯誤訊息"
           }
         }
       },
@@ -3367,6 +3470,34 @@
             "type": "string",
             "description": "UTC 偏移量"
           }
+        }
+      },
+      "ThreadConfig": {
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "是否啟用子討論串功能"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "子討論串標題（當 enabled=true 時必填，最多 100 字元）"
+          },
+          "initialMessage": {
+            "type": "string",
+            "maxLength": 2000,
+            "nullable": true,
+            "description": "子討論串初始訊息（選填，最多 2000 字元）"
+          }
+        },
+        "example": {
+          "enabled": true,
+          "title": "討論區：每週例會",
+          "initialMessage": "歡迎在此討論本週例會相關事項"
         }
       }
     },

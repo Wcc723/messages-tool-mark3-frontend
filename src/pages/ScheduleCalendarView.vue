@@ -490,6 +490,14 @@ const handleDelete = async (id: string) => {
                     <i class="bi bi-arrow-repeat"></i>
                     <span class="font-medium">{{ schedule.scheduleType === 'once' ? '單次' : schedule.scheduleType === 'weekly' ? '每週' : '每月' }}</span>
                   </div>
+                  <div
+                    v-if="schedule.threadConfig?.enabled"
+                    class="flex items-center gap-2 px-3 py-1.5 bg-purple-100 rounded-md"
+                    :title="schedule.threadConfig.title"
+                  >
+                    <i class="bi bi-chat-dots text-purple-600"></i>
+                    <span class="font-medium text-purple-800">Thread</span>
+                  </div>
                 </div>
               </div>
 
@@ -567,6 +575,14 @@ const handleDelete = async (id: string) => {
                     <span class="font-medium text-gray-800">
                       {{ schedule.scheduleType === 'once' ? '單次執行' : schedule.scheduleType === 'weekly' ? '每週重複' : '每月重複' }}
                     </span>
+                  </div>
+                  <div
+                    v-if="schedule.threadConfig?.enabled"
+                    class="flex items-center gap-2 px-3 py-1.5 bg-purple-100 rounded-md"
+                    :title="schedule.threadConfig.title"
+                  >
+                    <i class="bi bi-chat-dots text-purple-600"></i>
+                    <span class="font-medium text-purple-800">Thread 已啟用</span>
                   </div>
                 </div>
               </div>
@@ -727,6 +743,32 @@ const handleDelete = async (id: string) => {
                   <p class="font-medium">頻道</p>
                 </div>
                 <p class="text-sm font-medium text-gray-900 truncate">{{ getChannelName(modalSchedule.channelId) }}</p>
+              </div>
+            </div>
+
+            <!-- Thread 設定資訊 -->
+            <div v-if="modalSchedule.threadConfig?.enabled" class="mt-6">
+              <div class="bg-white rounded-lg p-4 border border-purple-200">
+                <div class="flex items-center gap-2 mb-3">
+                  <div class="w-8 h-8 bg-purple-100 rounded-md flex items-center justify-center border border-purple-200">
+                    <i class="bi bi-chat-dots text-purple-600"></i>
+                  </div>
+                  <h3 class="text-base font-semibold text-gray-900">Thread 設定</h3>
+                </div>
+                <div class="space-y-3">
+                  <div>
+                    <p class="text-xs text-gray-500 uppercase tracking-wide font-medium mb-1">Thread 標題</p>
+                    <p class="text-sm font-medium text-gray-900">{{ modalSchedule.threadConfig.title }}</p>
+                  </div>
+                  <div v-if="modalSchedule.threadConfig.initialMessage">
+                    <p class="text-xs text-gray-500 uppercase tracking-wide font-medium mb-1">初始訊息</p>
+                    <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ modalSchedule.threadConfig.initialMessage }}</p>
+                  </div>
+                  <div class="flex items-center gap-2 text-sm text-purple-700 bg-purple-50 px-3 py-2 rounded-md">
+                    <i class="bi bi-info-circle"></i>
+                    <span>此排程會在訊息發送後自動建立討論串</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

@@ -41,6 +41,9 @@ function buildDefaultForm() {
     timezone: 'Asia/Taipei',
     status: 'draft' as ScheduleStatus,
     validUntil: '',
+    threadEnabled: false,
+    threadTitle: '',
+    threadInitialMessage: '',
   }
 }
 
@@ -176,6 +179,9 @@ function loadCopiedSchedule() {
     timezone: copied.timezone ?? defaults.timezone,
     status: 'draft',
     validUntil: '',
+    threadEnabled: copied.threadConfig?.enabled ?? false,
+    threadTitle: copied.threadConfig?.title ?? '',
+    threadInitialMessage: copied.threadConfig?.initialMessage ?? '',
   }
 
   uploadedImages.value = copied.attachments?.images
@@ -205,6 +211,9 @@ async function loadSchedule(id: string) {
       timezone: schedule.timezone,
       status: schedule.status as ScheduleStatus,
       validUntil: formatLocalDateTimeInput(schedule.validUntil),
+      threadEnabled: schedule.threadConfig?.enabled ?? false,
+      threadTitle: schedule.threadConfig?.title ?? '',
+      threadInitialMessage: schedule.threadConfig?.initialMessage ?? '',
     }
     uploadedImages.value = schedule.attachments?.images
       ? schedule.attachments.images.map((image) => ({
@@ -246,6 +255,17 @@ function buildPayload() {
   }))
 
   payload.attachments = attachmentImages.length ? { images: attachmentImages } : null
+
+  // Thread 配置
+  if (form.value.threadEnabled) {
+    payload.threadConfig = {
+      enabled: true,
+      title: form.value.threadTitle.trim(),
+      initialMessage: form.value.threadInitialMessage.trim() || null,
+    }
+  } else {
+    payload.threadConfig = null
+  }
 
   if (form.value.validUntil) {
     const validUntilDate = new Date(form.value.validUntil)
@@ -410,6 +430,19 @@ const validateForm = ({ alertOnError = false } = {}) => {
     }
   }
 
+  // Thread 驗證
+  if (form.value.threadEnabled) {
+    if (!form.value.threadTitle || form.value.threadTitle.trim() === '') {
+      return fail('啟用 Thread 功能時，Thread 標題為必填')
+    }
+    if (form.value.threadTitle.length > 100) {
+      return fail('Thread 標題不可超過 100 字元')
+    }
+    if (form.value.threadInitialMessage && form.value.threadInitialMessage.length > 2000) {
+      return fail('Thread 初始訊息不可超過 2000 字元')
+    }
+  }
+
   return true
 }
 </script>
@@ -560,6 +593,91 @@ const validateForm = ({ alertOnError = false } = {}) => {
                   <i v-else class="bi bi-trash"></i>
                   {{ removingImageId === image.imageId ? '處理中...' : '移除' }}
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thread 設定區塊 -->
+      <div class="bg-white rounded-lg border border-gray-200 p-6">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center">
+            <i class="bi bi-chat-dots text-gray-600 text-lg"></i>
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900">Thread 設定</h2>
+            <p class="text-sm text-gray-600">設定是否在訊息發送後建立討論串</p>
+          </div>
+        </div>
+
+        <div class="space-y-6">
+          <!-- 啟用開關 -->
+          <div class="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+            <div class="flex-1">
+              <label class="block text-sm font-medium text-gray-900 mb-1">
+                啟用 Thread 功能
+              </label>
+              <p class="text-sm text-gray-500">
+                訊息發送後自動建立一個討論串，方便團隊成員討論
+              </p>
+            </div>
+            <div class="ml-4">
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input
+                  v-model="form.threadEnabled"
+                  type="checkbox"
+                  class="sr-only peer"
+                />
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-gray-900 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gray-900"></div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Thread 標題（當啟用時顯示） -->
+          <div v-if="form.threadEnabled">
+            <label for="threadTitle" class="block text-sm font-medium text-gray-700 mb-2">
+              Thread 標題 <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="threadTitle"
+              v-model="form.threadTitle"
+              type="text"
+              required
+              maxlength="100"
+              class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 transition"
+              placeholder="例如：每週例會討論區"
+            />
+            <p class="text-sm text-gray-500 mt-2">{{ form.threadTitle.length }} / 100 字元</p>
+          </div>
+
+          <!-- Thread 初始訊息（當啟用時顯示） -->
+          <div v-if="form.threadEnabled">
+            <label for="threadInitialMessage" class="block text-sm font-medium text-gray-700 mb-2">
+              Thread 初始訊息（選填）
+            </label>
+            <textarea
+              id="threadInitialMessage"
+              v-model="form.threadInitialMessage"
+              maxlength="2000"
+              rows="4"
+              class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900 resize-none transition"
+              placeholder="輸入 Thread 的第一則訊息（選填）"
+            ></textarea>
+            <p class="text-sm text-gray-500 mt-2">{{ form.threadInitialMessage.length }} / 2000 字元</p>
+          </div>
+
+          <!-- 說明提示 -->
+          <div v-if="form.threadEnabled" class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="flex items-start gap-3">
+              <i class="bi bi-info-circle text-blue-600 text-lg flex-shrink-0 mt-0.5"></i>
+              <div class="text-sm text-blue-800">
+                <p class="font-medium mb-1">關於 Thread 功能</p>
+                <ul class="list-disc list-inside space-y-1 text-blue-700">
+                  <li>Thread 會在訊息發送後自動建立</li>
+                  <li>團隊成員可以在 Thread 內進行討論，不會干擾主頻道</li>
+                  <li>初始訊息可以用來說明討論主題或提供指引</li>
+                </ul>
               </div>
             </div>
           </div>

@@ -129,6 +129,12 @@ export interface DiscordGuildsResponse {
 export type ScheduleType = 'once' | 'weekly' | 'monthly'
 export type ScheduleStatus = 'draft' | 'active' | 'paused' | 'completed'
 
+export interface ThreadConfig {
+  enabled: boolean
+  title?: string
+  initialMessage?: string | null
+}
+
 export interface ScheduleAttachmentImage {
   imageId: string
   firebaseUrl: string
@@ -158,6 +164,7 @@ export interface Schedule {
   timezone: string
   validUntil?: string
   attachments?: ScheduleAttachments | null
+  threadConfig?: ThreadConfig | null
   status: ScheduleStatus
   lastExecutedAt?: string
   nextExecutionAt?: string
@@ -177,6 +184,7 @@ export interface ScheduleCreateRequest {
   timezone?: string
   validUntil?: string
   attachments?: ScheduleAttachments | null
+  threadConfig?: ThreadConfig | null
   status?: 'draft' | 'active'
 }
 
@@ -192,6 +200,7 @@ export interface ScheduleUpdateRequest {
   timezone?: string
   validUntil?: string
   attachments?: ScheduleAttachments | null
+  threadConfig?: ThreadConfig | null
   status?: ScheduleStatus
 }
 
@@ -232,6 +241,7 @@ export interface Timezone {
 // ============================================
 
 export type ExecutionStatus = 'success' | 'failed' | 'pending'
+export type ThreadStatus = 'success' | 'failed' | 'skipped' | 'not_configured'
 
 export interface ExecutionLog {
   id: string
@@ -241,6 +251,10 @@ export interface ExecutionLog {
   message?: string
   error?: string
   discordMessageId?: string
+  threadId?: string | null
+  threadUrl?: string | null
+  threadStatus?: ThreadStatus | null
+  threadError?: string | null
 }
 
 export interface ExecutionLogListResponse {
