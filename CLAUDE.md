@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a Vue 3 + TypeScript frontend application for a Discord automated scheduling message tool (Discord 自動化排程訊息工具). It's part of the Hexschool toolman project (Mark 3). The application allows users to manage Discord bot messages with scheduled delivery.
 
+> 本專案採用 `pnpm` 作為套件管理工具，所有指令請以 `pnpm` 執行。
+
 ## Tech Stack
 
 - **Framework**: Vue 3 with Composition API
