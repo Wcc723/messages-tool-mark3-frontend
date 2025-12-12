@@ -51,6 +51,17 @@ const allNavGroups: NavGroup[] = [
     ],
   },
   {
+    title: '打卡管理',
+    items: [
+      {
+        name: '打卡排程',
+        path: '/dashboard/checkin/schedules',
+        icon: 'bi-clipboard-check',
+        permissionKey: 'showCheckinSchedules',
+      },
+    ],
+  },
+  {
     title: '系統管理',
     showIf: () => permissionStore.isAdmin(),
     items: [

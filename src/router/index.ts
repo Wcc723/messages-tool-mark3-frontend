@@ -103,6 +103,33 @@ const routes: RouteRecordRaw[] = [
           permissionPath: '/dashboard/admin/users',
         },
       },
+      {
+        path: 'checkin/schedules',
+        name: 'CheckinSchedules',
+        component: () => import('@/pages/checkin/CheckinScheduleListView.vue'),
+        meta: {
+          requiresAuth: true,
+          permissionPath: '/dashboard/checkin/schedules',
+        },
+      },
+      {
+        path: 'checkin/schedules/new',
+        name: 'CheckinScheduleCreate',
+        component: () => import('@/pages/checkin/CheckinScheduleFormView.vue'),
+        meta: {
+          requiresAuth: true,
+          permissionPath: '/dashboard/checkin/schedules/new',
+        },
+      },
+      {
+        path: 'checkin/schedules/edit/:id',
+        name: 'CheckinScheduleEdit',
+        component: () => import('@/pages/checkin/CheckinScheduleFormView.vue'),
+        meta: {
+          requiresAuth: true,
+          permissionPath: '/dashboard/checkin/schedules/edit/:id',
+        },
+      },
     ],
   },
 ]
@@ -144,7 +171,7 @@ router.beforeEach(async (to, from, next) => {
         if (!authStore.user) {
           await authStore.fetchProfile()
         }
-      } catch (error) {
+      } catch {
         await authStore.logout()
         // Don't redirect, just continue to login page to avoid loop
         return next()
@@ -167,7 +194,7 @@ router.beforeEach(async (to, from, next) => {
   if (!authStore.user) {
     try {
       await authStore.fetchProfile()
-    } catch (error) {
+    } catch {
       await authStore.logout()
       return next({ name: 'Login' })
     }

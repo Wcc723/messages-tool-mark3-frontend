@@ -1,0 +1,424 @@
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useCheckinStore } from '@/stores/checkin'
+import { useDiscordStore } from '@/stores/discord'
+
+const router = useRouter()
+const route = useRoute()
+const checkinStore = useCheckinStore()
+const discordStore = useDiscordStore()
+
+// 編輯模式
+const scheduleId = computed(() => route.params.id as string | undefined)
+const isEditMode = computed(() => !!scheduleId.value)
+
+// UI 狀態
+const channelSearch = ref('')
+const isChannelDropdownOpen = ref(false)
+const isSubmitting = ref(false)
+const keywordInput = ref('')
+
+// 表單資料
+const form = ref({
+  name: '',
+  channelId: '',
+  startDate: '',
+  endDate: '',
+  keywords: [] as string[],
+  expectedThreadCount: undefined as number | undefined,
+})
+
+// 頻道過濾
+const filteredChannels = computed(() => {
+  if (!channelSearch.value) return discordStore.textChannels
+  const search = channelSearch.value.toLowerCase()
+  return discordStore.textChannels.filter((channel) => channel.name.toLowerCase().includes(search))
+})
+
+// 頻道分組（按分類）
+const groupedChannels = computed(() => {
+  const groups: Record<string, typeof discordStore.textChannels> = {}
+  filteredChannels.value.forEach((channel) => {
+    const category = channel.parentName || '未分類'
+    if (!groups[category]) groups[category] = []
+    groups[category].push(channel)
+  })
+  return groups
+})
+
+// 已選頻道
+const selectedChannel = computed(() => {
+  return discordStore.channels.find((c) => c.id === form.value.channelId)
+})
+
+// 選擇頻道
+function selectChannel(channelId: string) {
+  form.value.channelId = channelId
+  isChannelDropdownOpen.value = false
+  channelSearch.value = ''
+}
+
+// 新增關鍵字
+function addKeyword() {
+  const keyword = keywordInput.value.trim()
+  if (keyword && !form.value.keywords.includes(keyword)) {
+    form.value.keywords.push(keyword)
+    keywordInput.value = ''
+  }
+}
+
+// 移除關鍵字
+function removeKeyword(index: number) {
+  form.value.keywords.splice(index, 1)
+}
+
+// 表單驗證
+function validateForm(): string | null {
+  if (!form.value.name.trim()) {
+    return '請輸入排程名稱'
+  }
+
+  if (!form.value.channelId) {
+    return '請選擇 Discord 頻道'
+  }
+
+  if (!form.value.startDate) {
+    return '請選擇開始日期'
+  }
+
+  if (!form.value.endDate) {
+    return '請選擇結束日期'
+  }
+
+  // 驗證日期邏輯
+  const startDate = new Date(form.value.startDate)
+  const endDate = new Date(form.value.endDate)
+
+  if (endDate < startDate) {
+    return '結束日期不可早於開始日期'
+  }
+
+  return null
+}
+
+// 提交表單
+async function handleSubmit() {
+  const validationError = validateForm()
+  if (validationError) {
+    alert(validationError)
+    return
+  }
+
+  isSubmitting.value = true
+
+  try {
+    const payload = {
+      name: form.value.name.trim(),
+      channelId: form.value.channelId,
+      startDate: form.value.startDate,
+      endDate: form.value.endDate,
+      keywords: form.value.keywords.length > 0 ? form.value.keywords : undefined,
+      expectedThreadCount: form.value.expectedThreadCount,
+    }
+
+    if (isEditMode.value && scheduleId.value) {
+      // 更新模式
+      await checkinStore.updateSchedule(scheduleId.value, payload)
+      alert('排程已更新！')
+    } else {
+      // 新增模式
+      await checkinStore.createSchedule(payload)
+      alert('排程已建立！')
+    }
+
+    router.push({ name: 'CheckinSchedules' })
+  } catch (error: any) {
+    console.error('Failed to save schedule:', error)
+    alert(checkinStore.error || '操作失敗')
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+// 取消
+function handleCancel() {
+  if (confirm('確定要取消嗎？未儲存的變更將會遺失。')) {
+    router.push({ name: 'CheckinSchedules' })
+  }
+}
+
+// 格式化今天的日期
+function formatToday(): string {
+  const today = new Date()
+  const year = today.getFullYear()
+  const month = String(today.getMonth() + 1).padStart(2, '0')
+  const day = String(today.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+// 載入初始資料
+onMounted(async () => {
+  // 載入頻道列表
+  if (discordStore.channels.length === 0) {
+    await discordStore.fetchChannels()
+  }
+
+  // 編輯模式：載入排程資料
+  if (isEditMode.value && scheduleId.value) {
+    try {
+      const schedule = await checkinStore.fetchScheduleById(scheduleId.value)
+      form.value = {
+        name: schedule.name,
+        channelId: schedule.channelId,
+        startDate: schedule.startDate,
+        endDate: schedule.endDate,
+        keywords: schedule.keywords || [],
+        expectedThreadCount: schedule.expectedThreadCount,
+      }
+    } catch (error) {
+      alert('載入排程失敗')
+      router.push({ name: 'CheckinSchedules' })
+    }
+  } else {
+    // 新增模式：設定預設日期為今天
+    form.value.startDate = formatToday()
+  }
+})
+</script>
+
+<template>
+  <div class="space-y-6 max-w-4xl mx-auto">
+    <header>
+      <h1 class="text-2xl font-bold text-gray-800">
+        {{ isEditMode ? '編輯打卡排程' : '新增打卡排程' }}
+      </h1>
+      <p class="text-gray-600 mt-1">設定 Discord 頻道的打卡監控排程</p>
+    </header>
+
+    <form @submit.prevent="handleSubmit" class="space-y-6">
+      <!-- 基本設定 -->
+      <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
+        <div class="flex items-center gap-3 border-b border-gray-200 pb-3">
+          <i class="bi bi-info-circle text-indigo-600 text-lg"></i>
+          <h2 class="text-lg font-semibold text-gray-800">基本設定</h2>
+        </div>
+
+        <!-- 排程名稱 -->
+        <div>
+          <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
+            排程名稱 <span class="text-red-500">*</span>
+          </label>
+          <input
+            id="name"
+            v-model="form.name"
+            type="text"
+            required
+            maxlength="100"
+            placeholder="例如：2025 年度打卡活動"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+        </div>
+
+        <!-- Discord 頻道 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Discord 頻道 <span class="text-red-500">*</span>
+          </label>
+          <div class="relative">
+            <button
+              type="button"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+              @click="isChannelDropdownOpen = !isChannelDropdownOpen"
+            >
+              <span v-if="selectedChannel" class="text-gray-800">
+                <i class="bi bi-hash text-gray-400"></i>
+                {{ selectedChannel.name }}
+                <span v-if="selectedChannel.parentName" class="text-xs text-gray-500 ml-2">
+                  ({{ selectedChannel.parentName }})
+                </span>
+              </span>
+              <span v-else class="text-gray-500">請選擇頻道</span>
+              <i class="bi bi-chevron-down text-gray-400"></i>
+            </button>
+
+            <!-- 下拉選單 -->
+            <div
+              v-if="isChannelDropdownOpen"
+              class="absolute z-10 w-full mt-2 bg-white border border-gray-300 rounded-lg shadow-lg max-h-80 overflow-auto"
+            >
+              <!-- 搜尋框 -->
+              <div class="p-3 border-b border-gray-200 sticky top-0 bg-white">
+                <input
+                  v-model="channelSearch"
+                  type="text"
+                  placeholder="搜尋頻道..."
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <!-- 頻道列表（按分類分組） -->
+              <div class="py-2">
+                <div v-for="(channels, category) in groupedChannels" :key="category" class="mb-3">
+                  <div class="px-3 py-1 text-xs font-semibold text-gray-500 uppercase">
+                    {{ category }}
+                  </div>
+                  <button
+                    v-for="channel in channels"
+                    :key="channel.id"
+                    type="button"
+                    class="w-full px-4 py-2 text-left hover:bg-gray-50 cursor-pointer flex items-center gap-2"
+                    :class="{ 'bg-indigo-50': form.channelId === channel.id }"
+                    @click="selectChannel(channel.id)"
+                  >
+                    <i class="bi bi-hash text-gray-400"></i>
+                    <span class="flex-1 text-sm">{{ channel.name }}</span>
+                    <i
+                      v-if="form.channelId === channel.id"
+                      class="bi bi-check2 text-indigo-600 text-lg"
+                    ></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 無結果 -->
+              <div
+                v-if="filteredChannels.length === 0"
+                class="px-4 py-8 text-center text-gray-500 text-sm"
+              >
+                找不到符合的頻道
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 日期範圍 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="startDate" class="block text-sm font-medium text-gray-700 mb-1">
+              開始日期 <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="startDate"
+              v-model="form.startDate"
+              type="date"
+              required
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label for="endDate" class="block text-sm font-medium text-gray-700 mb-1">
+              結束日期 <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="endDate"
+              v-model="form.endDate"
+              type="date"
+              required
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+        </div>
+      </section>
+
+      <!-- 進階設定 -->
+      <section class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-4">
+        <div class="flex items-center gap-3 border-b border-gray-200 pb-3">
+          <i class="bi bi-sliders text-indigo-600 text-lg"></i>
+          <h2 class="text-lg font-semibold text-gray-800">進階設定</h2>
+        </div>
+
+        <!-- 關鍵字篩選 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            關鍵字篩選（可選）
+          </label>
+          <p class="text-xs text-gray-500 mb-2">
+            輸入關鍵字以篩選討論串標題。若不設定，則會截取所有討論串。
+          </p>
+          <div class="flex gap-2 mb-2">
+            <input
+              v-model="keywordInput"
+              type="text"
+              placeholder="輸入關鍵字..."
+              class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              @keydown.enter.prevent="addKeyword"
+            />
+            <button
+              type="button"
+              class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition cursor-pointer"
+              @click="addKeyword"
+            >
+              <i class="bi bi-plus-lg"></i>
+            </button>
+          </div>
+          <div v-if="form.keywords.length > 0" class="flex flex-wrap gap-2">
+            <span
+              v-for="(keyword, index) in form.keywords"
+              :key="index"
+              class="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+            >
+              {{ keyword }}
+              <button
+                type="button"
+                class="hover:text-blue-600 cursor-pointer"
+                @click="removeKeyword(index)"
+              >
+                <i class="bi bi-x text-lg"></i>
+              </button>
+            </span>
+          </div>
+        </div>
+
+        <!-- 預期討論串數目 -->
+        <div>
+          <label for="expectedThreadCount" class="block text-sm font-medium text-gray-700 mb-1">
+            預期討論串數目（可選）
+          </label>
+          <input
+            id="expectedThreadCount"
+            v-model.number="form.expectedThreadCount"
+            type="number"
+            min="0"
+            placeholder="例如：30"
+            class="w-full md:w-1/2 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <p class="text-xs text-gray-500 mt-1">用於預估排程的討論串總數</p>
+        </div>
+      </section>
+
+      <!-- 錯誤訊息 -->
+      <div
+        v-if="checkinStore.error"
+        class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700"
+      >
+        {{ checkinStore.error }}
+      </div>
+
+      <!-- 操作按鈕 -->
+      <div class="sticky bottom-0 bg-white border-t border-gray-200 p-4 flex items-center justify-end gap-3">
+        <button
+          type="button"
+          class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition cursor-pointer"
+          @click="handleCancel"
+        >
+          取消
+        </button>
+        <button
+          type="submit"
+          class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          :disabled="isSubmitting || checkinStore.isLoading"
+        >
+          <span v-if="isSubmitting || checkinStore.isLoading">
+            <i class="bi bi-arrow-repeat animate-spin"></i>
+            儲存中...
+          </span>
+          <span v-else>
+            <i class="bi bi-check2"></i>
+            {{ isEditMode ? '更新排程' : '建立排程' }}
+          </span>
+        </button>
+      </div>
+    </form>
+  </div>
+</template>

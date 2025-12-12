@@ -1,8 +1,6 @@
 import apiClient from './client'
 import type {
   ApiResponse,
-  DiscordChannel,
-  DiscordGuild,
   DiscordChannelsResponse,
   DiscordGuildsResponse,
   DiscordBot,

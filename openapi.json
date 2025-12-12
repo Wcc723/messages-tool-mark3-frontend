@@ -928,6 +928,751 @@
         }
       }
     },
+    "/api/checkin/{scheduleId}/stats": {
+      "get": {
+        "summary": "取得排程全局統計",
+        "tags": [
+          "Checkin Public"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scheduleId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "排程 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功取得統計資料",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "scheduleId": {
+                          "type": "string"
+                        },
+                        "scheduleName": {
+                          "type": "string"
+                        },
+                        "totalCheckins": {
+                          "type": "integer"
+                        },
+                        "dailyTasks": {
+                          "type": "integer"
+                        },
+                        "expectedTasks": {
+                          "type": "integer"
+                        },
+                        "progress": {
+                          "type": "number"
+                        },
+                        "uniqueUsers": {
+                          "type": "integer"
+                        },
+                        "channelInfo": {
+                          "type": "object"
+                        },
+                        "dailyStats": {
+                          "type": "array"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "排程不存在"
+          }
+        }
+      }
+    },
+    "/api/checkin/{scheduleId}/users": {
+      "get": {
+        "summary": "取得排程用戶列表",
+        "tags": [
+          "Checkin Public"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scheduleId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "頁碼"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "maximum": 100
+            },
+            "description": "每頁數量"
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            },
+            "description": "搜尋關鍵字（暱稱或 Discord ID）"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功取得用戶列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "users": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "discordUserId": {
+                                "type": "string"
+                              },
+                              "username": {
+                                "type": "string"
+                              },
+                              "displayName": {
+                                "type": "string"
+                              },
+                              "avatarUrl": {
+                                "type": "string"
+                              },
+                              "totalCheckinDays": {
+                                "type": "integer"
+                              },
+                              "checkinStatus": {
+                                "type": "object"
+                              }
+                            }
+                          }
+                        },
+                        "pagination": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "排程不存在"
+          }
+        }
+      }
+    },
+    "/api/checkin/{scheduleId}/users/{discordUserId}": {
+      "get": {
+        "summary": "取得用戶打卡詳情",
+        "tags": [
+          "Checkin Public"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scheduleId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "discordUserId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Discord 用戶 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功取得用戶打卡詳情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "discordUserId": {
+                          "type": "string"
+                        },
+                        "username": {
+                          "type": "string"
+                        },
+                        "displayName": {
+                          "type": "string"
+                        },
+                        "avatarUrl": {
+                          "type": "string"
+                        },
+                        "totalCheckinDays": {
+                          "type": "integer"
+                        },
+                        "checkinDetails": {
+                          "type": "array"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "排程或用戶不存在"
+          }
+        }
+      }
+    },
+    "/api/checkin/{scheduleId}/days/{dayLabel}": {
+      "get": {
+        "summary": "取得單日打卡詳情",
+        "tags": [
+          "Checkin Public"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scheduleId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "dayLabel",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Day 標籤（如 Day1、Day2）"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功取得單日打卡詳情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "dayLabel": {
+                          "type": "string"
+                        },
+                        "date": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "threadInfo": {
+                          "type": "object"
+                        },
+                        "checkinCount": {
+                          "type": "integer"
+                        },
+                        "checkinUsers": {
+                          "type": "array"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "無效的 Day 標籤"
+          },
+          "404": {
+            "description": "排程或該日資料不存在"
+          }
+        }
+      }
+    },
+    "/api/checkin/{scheduleId}/search": {
+      "get": {
+        "summary": "搜尋用戶",
+        "tags": [
+          "Checkin Public"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scheduleId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "搜尋關鍵字"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "結果數量限制"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "搜尋結果"
+          },
+          "400": {
+            "description": "未提供搜尋關鍵字"
+          }
+        }
+      }
+    },
+    "/api/checkin/{scheduleId}/threads": {
+      "get": {
+        "summary": "取得排程的討論串列表",
+        "tags": [
+          "Checkin Public"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scheduleId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功取得討論串列表"
+          }
+        }
+      }
+    },
+    "/api/checkin-schedules": {
+      "post": {
+        "summary": "建立打卡排程",
+        "tags": [
+          "Checkin Schedules"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "channelId",
+                  "startDate",
+                  "endDate"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "排程名稱"
+                  },
+                  "channelId": {
+                    "type": "string",
+                    "description": "Discord 頻道 ID"
+                  },
+                  "startDate": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "監控開始日期"
+                  },
+                  "endDate": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "監控結束日期"
+                  },
+                  "keywords": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "關鍵字篩選列表"
+                  },
+                  "expectedThreadCount": {
+                    "type": "integer",
+                    "description": "預期討論串數目"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "排程建立成功"
+          },
+          "400": {
+            "description": "請求參數錯誤"
+          },
+          "401": {
+            "description": "未認證"
+          },
+          "500": {
+            "description": "伺服器錯誤"
+          }
+        }
+      },
+      "get": {
+        "summary": "取得打卡排程列表",
+        "tags": [
+          "Checkin Schedules"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "includeStats",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "是否包含統計資訊"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功取得排程列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CheckinSchedule"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "未認證"
+          }
+        }
+      }
+    },
+    "/api/checkin-schedules/cron-status": {
+      "get": {
+        "summary": "取得 Cron 任務狀態",
+        "tags": [
+          "Checkin Schedules"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功取得狀態"
+          }
+        }
+      }
+    },
+    "/api/checkin-schedules/trigger-hourly-scan": {
+      "post": {
+        "summary": "手動觸發每小時掃描（測試用）",
+        "tags": [
+          "Checkin Schedules"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "掃描觸發成功"
+          }
+        }
+      }
+    },
+    "/api/checkin-schedules/{id}": {
+      "get": {
+        "summary": "取得單一排程詳情",
+        "tags": [
+          "Checkin Schedules"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功取得排程詳情"
+          },
+          "404": {
+            "description": "排程不存在"
+          }
+        }
+      },
+      "patch": {
+        "summary": "更新排程",
+        "tags": [
+          "Checkin Schedules"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "keywords": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "expectedThreadCount": {
+                    "type": "integer"
+                  },
+                  "isActive": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "排程更新成功"
+          },
+          "403": {
+            "description": "沒有權限"
+          },
+          "404": {
+            "description": "排程不存在"
+          }
+        }
+      },
+      "delete": {
+        "summary": "刪除排程",
+        "tags": [
+          "Checkin Schedules"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "排程刪除成功"
+          },
+          "403": {
+            "description": "沒有權限"
+          },
+          "404": {
+            "description": "排程不存在"
+          }
+        }
+      }
+    },
+    "/api/checkin-schedules/{id}/toggle": {
+      "patch": {
+        "summary": "切換排程啟用狀態",
+        "tags": [
+          "Checkin Schedules"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "狀態切換成功"
+          },
+          "404": {
+            "description": "排程不存在"
+          }
+        }
+      }
+    },
+    "/api/checkin-schedules/{id}/rescan": {
+      "post": {
+        "summary": "手動重新掃描",
+        "tags": [
+          "Checkin Schedules"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "scanDate": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "指定日期（可選，不指定則掃描全部）"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "掃描完成"
+          },
+          "404": {
+            "description": "排程不存在"
+          }
+        }
+      }
+    },
     "/api/discord/validate-token": {
       "get": {
         "summary": "驗證 Discord Bot 連接狀態",
@@ -1036,7 +1781,7 @@
     },
     "/api/discord/guilds/{guildId}/channels": {
       "get": {
-        "summary": "取得指定伺服器的頻道列表",
+        "summary": "取得指定伺服器的頻道列表（按 Discord 順序扁平化排列）",
         "tags": [
           "Discord"
         ],
@@ -1077,7 +1822,7 @@
         },
         "responses": {
           "200": {
-            "description": "成功取得頻道列表",
+            "description": "成功取得頻道列表（扁平化列表，按照 Discord 頁面順序排列）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1096,10 +1841,12 @@
                           "type": "array",
                           "items": {
                             "$ref": "#/components/schemas/DiscordChannel"
-                          }
+                          },
+                          "description": "頻道列表，保留 parentId 和 parentName 資訊"
                         },
                         "count": {
-                          "type": "integer"
+                          "type": "integer",
+                          "description": "總頻道數"
                         }
                       }
                     }
@@ -1119,7 +1866,7 @@
     },
     "/api/discord/channels": {
       "get": {
-        "summary": "取得預設伺服器的頻道列表",
+        "summary": "取得預設伺服器的頻道列表（按 Discord 順序扁平化排列）",
         "tags": [
           "Discord"
         ],
@@ -1130,7 +1877,7 @@
         ],
         "responses": {
           "200": {
-            "description": "成功取得頻道列表",
+            "description": "成功取得頻道列表（扁平化列表，按照 Discord 頁面順序排列）",
             "content": {
               "application/json": {
                 "schema": {
@@ -1149,10 +1896,12 @@
                           "type": "array",
                           "items": {
                             "$ref": "#/components/schemas/DiscordChannel"
-                          }
+                          },
+                          "description": "頻道列表，保留 parentId 和 parentName 資訊"
                         },
                         "count": {
-                          "type": "integer"
+                          "type": "integer",
+                          "description": "總頻道數"
                         }
                       }
                     }
@@ -1203,15 +1952,6 @@
                     "type": "string",
                     "maxLength": 2000,
                     "description": "測試訊息內容"
-                  },
-                  "threadConfig": {
-                    "allOf": [
-                      {
-                        "$ref": "#/components/schemas/ThreadConfig"
-                      }
-                    ],
-                    "nullable": true,
-                    "description": "子討論串配置（選填）"
                   }
                 }
               }
@@ -1233,57 +1973,7 @@
                       "type": "string"
                     },
                     "data": {
-                      "type": "object",
-                      "properties": {
-                        "messageId": {
-                          "type": "string",
-                          "description": "訊息 ID"
-                        },
-                        "channelId": {
-                          "type": "string",
-                          "description": "頻道 ID"
-                        },
-                        "guildId": {
-                          "type": "string",
-                          "description": "伺服器 ID"
-                        },
-                        "content": {
-                          "type": "string",
-                          "description": "訊息內容"
-                        },
-                        "timestamp": {
-                          "type": "integer",
-                          "description": "訊息時間戳記"
-                        },
-                        "url": {
-                          "type": "string",
-                          "description": "訊息連結"
-                        },
-                        "threadId": {
-                          "type": "string",
-                          "nullable": true,
-                          "description": "Thread ID（如果建立了 thread）"
-                        },
-                        "threadUrl": {
-                          "type": "string",
-                          "nullable": true,
-                          "description": "Thread URL（如果建立了 thread）"
-                        },
-                        "threadStatus": {
-                          "type": "string",
-                          "enum": [
-                            "success",
-                            "failed",
-                            "not_configured"
-                          ],
-                          "description": "Thread 建立狀態"
-                        },
-                        "threadError": {
-                          "type": "string",
-                          "nullable": true,
-                          "description": "Thread 建立錯誤訊息（如果失敗）"
-                        }
-                      }
+                      "$ref": "#/components/schemas/DiscordMessage"
                     }
                   }
                 }
@@ -1411,6 +2101,115 @@
           },
           "400": {
             "description": "連接失敗"
+          },
+          "401": {
+            "description": "未認證"
+          },
+          "500": {
+            "description": "伺服器未設定 Bot Token"
+          }
+        }
+      }
+    },
+    "/api/discord/guilds/{guildId}/diagnose": {
+      "get": {
+        "summary": "診斷伺服器頻道權限（除錯用）",
+        "description": "取得指定伺服器所有頻道的詳細權限資訊，包括 Bot 角色、權限覆蓋等，用於診斷為何某些頻道無法讀取",
+        "tags": [
+          "Discord"
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "guildId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Discord 伺服器 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "診斷完成",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "guildId": {
+                          "type": "string"
+                        },
+                        "guildName": {
+                          "type": "string"
+                        },
+                        "botId": {
+                          "type": "string"
+                        },
+                        "botUsername": {
+                          "type": "string"
+                        },
+                        "botRoles": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
+                        },
+                        "totalChannels": {
+                          "type": "integer"
+                        },
+                        "channelsByType": {
+                          "type": "object"
+                        },
+                        "summary": {
+                          "type": "object",
+                          "properties": {
+                            "totalTextChannels": {
+                              "type": "integer"
+                            },
+                            "channelsWithViewPermission": {
+                              "type": "integer"
+                            },
+                            "channelsWithSendPermission": {
+                              "type": "integer"
+                            },
+                            "channelsWithoutViewPermission": {
+                              "type": "integer"
+                            },
+                            "channelsWithoutSendPermission": {
+                              "type": "integer"
+                            }
+                          }
+                        },
+                        "channels": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "參數錯誤或診斷失敗"
           },
           "401": {
             "description": "未認證"
@@ -2941,6 +3740,66 @@
           }
         }
       },
+      "CheckinSchedule": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "排程唯一識別碼"
+          },
+          "name": {
+            "type": "string",
+            "description": "排程名稱"
+          },
+          "channelId": {
+            "type": "string",
+            "description": "Discord 頻道 ID"
+          },
+          "guildId": {
+            "type": "string",
+            "description": "Discord 伺服器 ID"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "description": "監控開始日期"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date",
+            "description": "監控結束日期"
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "關鍵字篩選列表"
+          },
+          "expectedThreadCount": {
+            "type": "integer",
+            "description": "預期討論串數目"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "是否啟用"
+          },
+          "createdBy": {
+            "type": "string",
+            "format": "uuid",
+            "description": "建立者 ID"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "DiscordBot": {
         "type": "object",
         "properties": {
@@ -3019,7 +3878,13 @@
           },
           "parentId": {
             "type": "string",
+            "nullable": true,
             "description": "父分類 ID"
+          },
+          "parentName": {
+            "type": "string",
+            "nullable": true,
+            "description": "父分類名稱"
           },
           "topic": {
             "type": "string",
@@ -3182,15 +4047,6 @@
                 }
               }
             }
-          },
-          "threadConfig": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ThreadConfig"
-              }
-            ],
-            "nullable": true,
-            "description": "子討論串配置"
           },
           "validUntil": {
             "type": "string",
@@ -3368,15 +4224,6 @@
               }
             }
           },
-          "threadConfig": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/ThreadConfig"
-              }
-            ],
-            "nullable": true,
-            "description": "子討論串配置"
-          },
           "status": {
             "type": "string",
             "enum": [
@@ -3426,32 +4273,6 @@
           "discordMessageId": {
             "type": "string",
             "description": "Discord 訊息 ID"
-          },
-          "threadId": {
-            "type": "string",
-            "nullable": true,
-            "description": "Discord Thread ID"
-          },
-          "threadUrl": {
-            "type": "string",
-            "nullable": true,
-            "description": "Discord Thread URL"
-          },
-          "threadStatus": {
-            "type": "string",
-            "enum": [
-              "success",
-              "failed",
-              "skipped",
-              "not_configured"
-            ],
-            "nullable": true,
-            "description": "Thread 建立狀態"
-          },
-          "threadError": {
-            "type": "string",
-            "nullable": true,
-            "description": "Thread 建立錯誤訊息"
           }
         }
       },
@@ -3470,34 +4291,6 @@
             "type": "string",
             "description": "UTC 偏移量"
           }
-        }
-      },
-      "ThreadConfig": {
-        "type": "object",
-        "required": [
-          "enabled"
-        ],
-        "properties": {
-          "enabled": {
-            "type": "boolean",
-            "description": "是否啟用子討論串功能"
-          },
-          "title": {
-            "type": "string",
-            "maxLength": 100,
-            "description": "子討論串標題（當 enabled=true 時必填，最多 100 字元）"
-          },
-          "initialMessage": {
-            "type": "string",
-            "maxLength": 2000,
-            "nullable": true,
-            "description": "子討論串初始訊息（選填，最多 2000 字元）"
-          }
-        },
-        "example": {
-          "enabled": true,
-          "title": "討論區：每週例會",
-          "initialMessage": "歡迎在此討論本週例會相關事項"
         }
       }
     },

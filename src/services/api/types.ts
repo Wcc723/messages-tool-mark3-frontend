@@ -266,3 +266,51 @@ export interface ExecutionLogQueryParams {
   page?: number
   limit?: number
 }
+
+// ============================================
+// 打卡排程相關
+// ============================================
+
+export interface CheckinSchedule {
+  id: string
+  name: string
+  channelId: string
+  guildId: string
+  startDate: string // YYYY-MM-DD
+  endDate: string // YYYY-MM-DD
+  keywords?: string[]
+  expectedThreadCount?: number
+  isActive: boolean
+  createdBy: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CheckinScheduleCreateRequest {
+  name: string
+  channelId: string
+  startDate: string // YYYY-MM-DD
+  endDate: string // YYYY-MM-DD
+  keywords?: string[]
+  expectedThreadCount?: number
+}
+
+export interface CheckinScheduleUpdateRequest {
+  name?: string
+  keywords?: string[]
+  expectedThreadCount?: number
+  isActive?: boolean
+}
+
+export interface CheckinScheduleListResponse {
+  schedules: CheckinSchedule[]
+  count: number
+}
+
+export interface CheckinScheduleQueryParams {
+  includeStats?: boolean
+}
+
+export interface CheckinRescanRequest {
+  scanDate?: string // YYYY-MM-DD，可選，不指定則掃描全部
+}

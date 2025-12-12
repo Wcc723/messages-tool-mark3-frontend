@@ -22,6 +22,7 @@ export interface FeaturePermissions {
   discord: DiscordPermissions
   images: ImagePermissions
   system: SystemPermissions
+  checkin: CheckinPermissions
 }
 
 export interface UserPermissions {
@@ -65,6 +66,16 @@ export interface SystemPermissions {
   canManageSettings: boolean
 }
 
+export interface CheckinPermissions {
+  canView: boolean
+  canViewAll: boolean
+  canCreate: boolean
+  canEdit: boolean
+  canEditAll: boolean
+  canDelete: boolean
+  canDeleteAll: boolean
+}
+
 export interface NavigationPermissions {
   showScheduleNew: boolean
   showScheduleEdit: boolean
@@ -73,6 +84,7 @@ export interface NavigationPermissions {
   showDiscord: boolean
   showProfile: boolean
   showUserManagement: boolean
+  showCheckinSchedules: boolean
 }
 
 export interface RoutePermissions {

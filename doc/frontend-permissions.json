@@ -39,6 +39,15 @@
           "canViewLogs": true,
           "canViewDashboard": true,
           "canManageSettings": true
+        },
+        "checkin": {
+          "canView": true,
+          "canViewAll": true,
+          "canCreate": true,
+          "canEdit": true,
+          "canEditAll": true,
+          "canDelete": true,
+          "canDeleteAll": true
         }
       },
       "navigation": {
@@ -48,7 +57,8 @@
         "showScheduleStatus": true,
         "showDiscord": true,
         "showProfile": true,
-        "showUserManagement": true
+        "showUserManagement": true,
+        "showCheckinSchedules": true
       },
       "routes": {
         "allowedPaths": [
@@ -59,7 +69,10 @@
           "/dashboard/schedule/status",
           "/dashboard/discord",
           "/dashboard/profile",
-          "/dashboard/admin/users"
+          "/dashboard/admin/users",
+          "/dashboard/checkin/schedules",
+          "/dashboard/checkin/schedules/new",
+          "/dashboard/checkin/schedules/edit/:id"
         ]
       }
     },
@@ -102,6 +115,15 @@
           "canViewLogs": true,
           "canViewDashboard": true,
           "canManageSettings": false
+        },
+        "checkin": {
+          "canView": true,
+          "canViewAll": true,
+          "canCreate": true,
+          "canEdit": true,
+          "canEditAll": true,
+          "canDelete": true,
+          "canDeleteAll": true
         }
       },
       "navigation": {
@@ -111,7 +133,8 @@
         "showScheduleStatus": true,
         "showDiscord": true,
         "showProfile": true,
-        "showUserManagement": true
+        "showUserManagement": true,
+        "showCheckinSchedules": true
       },
       "routes": {
         "allowedPaths": [
@@ -122,7 +145,10 @@
           "/dashboard/schedule/status",
           "/dashboard/discord",
           "/dashboard/profile",
-          "/dashboard/admin/users"
+          "/dashboard/admin/users",
+          "/dashboard/checkin/schedules",
+          "/dashboard/checkin/schedules/new",
+          "/dashboard/checkin/schedules/edit/:id"
         ]
       }
     },
@@ -165,6 +191,15 @@
           "canViewLogs": false,
           "canViewDashboard": false,
           "canManageSettings": false
+        },
+        "checkin": {
+          "canView": true,
+          "canViewAll": false,
+          "canCreate": true,
+          "canEdit": true,
+          "canEditAll": false,
+          "canDelete": true,
+          "canDeleteAll": false
         }
       },
       "navigation": {
@@ -174,7 +209,8 @@
         "showScheduleStatus": true,
         "showDiscord": true,
         "showProfile": true,
-        "showUserManagement": false
+        "showUserManagement": false,
+        "showCheckinSchedules": true
       },
       "routes": {
         "allowedPaths": [
@@ -184,7 +220,10 @@
           "/dashboard/schedule/calendar",
           "/dashboard/schedule/status",
           "/dashboard/discord",
-          "/dashboard/profile"
+          "/dashboard/profile",
+          "/dashboard/checkin/schedules",
+          "/dashboard/checkin/schedules/new",
+          "/dashboard/checkin/schedules/edit/:id"
         ]
       }
     },
@@ -228,6 +267,15 @@
           "canViewLogs": false,
           "canViewDashboard": false,
           "canManageSettings": false
+        },
+        "checkin": {
+          "canView": false,
+          "canViewAll": false,
+          "canCreate": false,
+          "canEdit": false,
+          "canEditAll": false,
+          "canDelete": false,
+          "canDeleteAll": false
         }
       },
       "navigation": {
@@ -237,7 +285,8 @@
         "showScheduleStatus": false,
         "showDiscord": false,
         "showProfile": true,
-        "showUserManagement": false
+        "showUserManagement": false,
+        "showCheckinSchedules": false
       },
       "routes": {
         "allowedPaths": [
@@ -252,6 +301,7 @@
     "schedules": "排程管理",
     "discord": "Discord 整合",
     "images": "圖片管理",
-    "system": "系統管理"
+    "system": "系統管理",
+    "checkin": "打卡排程管理"
   }
 }
