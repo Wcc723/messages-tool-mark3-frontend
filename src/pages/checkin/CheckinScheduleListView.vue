@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCheckinStore } from '@/stores/checkin'
 import { useDiscordStore } from '@/stores/discord'
@@ -13,6 +13,14 @@ const { hasPermission } = usePermission()
 const canCreate = computed(() => hasPermission('checkin', 'canCreate'))
 const canEdit = computed(() => hasPermission('checkin', 'canEdit'))
 const canDelete = computed(() => hasPermission('checkin', 'canDelete'))
+
+// Rescan Modal 狀態
+const showRescanModal = ref(false)
+const rescanScheduleId = ref('')
+const rescanScheduleName = ref('')
+const rescanMode = ref<'all' | 'single'>('all')
+const rescanDate = ref('')
+const isRescanning = ref(false)
 
 // 解析頻道名稱
 function getChannelName(channelId: string): string {
@@ -54,42 +62,49 @@ async function handleToggle(id: string) {
   }
 }
 
-// 重新掃描
-async function handleRescan(id: string, name: string) {
-  const scanAll = confirm(
-    `是否掃描全部日期？\n\n點擊「確定」掃描全部\n點擊「取消」指定單日掃描`
-  )
+// 打開重新掃描 Modal
+function openRescanModal(id: string, name: string) {
+  rescanScheduleId.value = id
+  rescanScheduleName.value = name
+  rescanMode.value = 'all'
+  rescanDate.value = ''
+  showRescanModal.value = true
+}
 
-  if (scanAll) {
-    // 掃描全部
-    if (!confirm(`確定要重新掃描排程「${name}」的全部日期嗎？`)) {
+// 關閉 Modal
+function closeRescanModal() {
+  showRescanModal.value = false
+  rescanScheduleId.value = ''
+  rescanScheduleName.value = ''
+  rescanMode.value = 'all'
+  rescanDate.value = ''
+}
+
+// 執行重新掃描
+async function executeRescan() {
+  if (rescanMode.value === 'single') {
+    // 驗證日期
+    if (!rescanDate.value) {
+      alert('請選擇要掃描的日期')
       return
     }
+  }
 
-    try {
-      await checkinStore.rescanSchedule(id)
+  isRescanning.value = true
+
+  try {
+    if (rescanMode.value === 'all') {
+      await checkinStore.rescanSchedule(rescanScheduleId.value)
       alert('已開始重新掃描全部日期')
-    } catch {
-      alert(checkinStore.error || '掃描失敗')
+    } else {
+      await checkinStore.rescanSchedule(rescanScheduleId.value, rescanDate.value)
+      alert(`已開始重新掃描 ${rescanDate.value}`)
     }
-  } else {
-    // 指定單日
-    const scanDate = prompt('請輸入要掃描的日期（格式：YYYY-MM-DD）：')
-    if (!scanDate) return
-
-    // 簡單驗證日期格式
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/
-    if (!dateRegex.test(scanDate)) {
-      alert('日期格式錯誤，請使用 YYYY-MM-DD 格式')
-      return
-    }
-
-    try {
-      await checkinStore.rescanSchedule(id, scanDate)
-      alert(`已開始重新掃描 ${scanDate}`)
-    } catch {
-      alert(checkinStore.error || '掃描失敗')
-    }
+    closeRescanModal()
+  } catch {
+    alert(checkinStore.error || '掃描失敗')
+  } finally {
+    isRescanning.value = false
   }
 }
 
@@ -116,7 +131,12 @@ onMounted(async () => {
   }
 
   // 載入排程列表
-  await checkinStore.fetchSchedules()
+  try {
+    await checkinStore.fetchSchedules()
+  } catch (error) {
+    console.error('載入排程失敗:', error)
+    // 錯誤訊息會顯示在頁面上（來自 checkinStore.error）
+  }
 })
 </script>
 
@@ -182,10 +202,15 @@ onMounted(async () => {
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
             <tr v-if="checkinStore.isLoading">
-              <td colspan="7" class="px-6 py-10 text-center text-gray-500">
-                <div class="inline-flex items-center gap-2 text-indigo-600">
-                  <i class="bi bi-arrow-repeat animate-spin text-lg"></i>
-                  載入排程資料中...
+              <td colspan="7" class="px-6 py-16 text-center">
+                <div class="flex flex-col items-center gap-3">
+                  <div class="relative">
+                    <div class="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                  </div>
+                  <div class="text-gray-600">
+                    <p class="font-medium">載入排程資料中</p>
+                    <p class="text-sm text-gray-400 mt-1">請稍候...</p>
+                  </div>
                 </div>
               </td>
             </tr>
@@ -276,7 +301,7 @@ onMounted(async () => {
                     type="button"
                     class="p-2 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
                     title="重新掃描"
-                    @click="handleRescan(schedule.id, schedule.name)"
+                    @click="openRescanModal(schedule.id, schedule.name)"
                   >
                     <i class="bi bi-arrow-clockwise"></i>
                   </button>
@@ -308,6 +333,103 @@ onMounted(async () => {
 
     <div v-if="checkinStore.error" class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
       {{ checkinStore.error }}
+    </div>
+
+    <!-- Rescan Modal -->
+    <div
+      v-if="showRescanModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+      @click.self="closeRescanModal"
+    >
+      <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6 space-y-4">
+        <!-- Header -->
+        <div class="flex items-center justify-between border-b border-gray-200 pb-3">
+          <h3 class="text-lg font-semibold text-gray-800">重新掃描排程</h3>
+          <button
+            type="button"
+            class="text-gray-400 hover:text-gray-600 transition"
+            @click="closeRescanModal"
+          >
+            <i class="bi bi-x-lg text-xl"></i>
+          </button>
+        </div>
+
+        <!-- Content -->
+        <div class="space-y-4">
+          <p class="text-sm text-gray-600">
+            排程：<span class="font-semibold text-gray-800">{{ rescanScheduleName }}</span>
+          </p>
+
+          <!-- 掃描模式選擇 -->
+          <div class="space-y-3">
+            <label class="block text-sm font-medium text-gray-700">掃描範圍</label>
+
+            <label class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition"
+              :class="rescanMode === 'all' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300'"
+            >
+              <input
+                type="radio"
+                v-model="rescanMode"
+                value="all"
+                class="w-4 h-4 text-indigo-600"
+              />
+              <div class="flex-1">
+                <div class="font-medium text-gray-800">掃描全部日期</div>
+                <div class="text-xs text-gray-500">重新掃描排程內所有日期的討論串</div>
+              </div>
+            </label>
+
+            <label class="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition"
+              :class="rescanMode === 'single' ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300'"
+            >
+              <input
+                type="radio"
+                v-model="rescanMode"
+                value="single"
+                class="w-4 h-4 text-indigo-600"
+              />
+              <div class="flex-1">
+                <div class="font-medium text-gray-800">掃描單一日期</div>
+                <div class="text-xs text-gray-500">指定特定日期進行掃描</div>
+              </div>
+            </label>
+          </div>
+
+          <!-- 單日掃描日期選擇 -->
+          <div v-if="rescanMode === 'single'" class="space-y-2">
+            <label for="rescanDate" class="block text-sm font-medium text-gray-700">
+              選擇日期 <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="rescanDate"
+              type="date"
+              v-model="rescanDate"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+          <button
+            type="button"
+            class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
+            :disabled="isRescanning"
+            @click="closeRescanModal"
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            class="px-4 py-2 text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
+            :disabled="isRescanning"
+            @click="executeRescan"
+          >
+            <i v-if="isRescanning" class="bi bi-arrow-repeat animate-spin"></i>
+            <span>{{ isRescanning ? '掃描中...' : '開始掃描' }}</span>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
