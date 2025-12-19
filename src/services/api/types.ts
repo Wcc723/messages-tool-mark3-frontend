@@ -271,6 +271,8 @@ export interface ExecutionLogQueryParams {
 // 打卡排程相關
 // ============================================
 
+export type CheckinMode = 'standard' | 'extended' | 'all_period'
+
 export interface CheckinSchedule {
   id: string
   name: string
@@ -280,6 +282,8 @@ export interface CheckinSchedule {
   endDate: string // YYYY-MM-DD
   keywords?: string[]
   expectedThreadCount?: number
+  checkinMode?: CheckinMode // 打卡計算模式
+  extendedHours?: number // 延後計算時數（1-72小時，僅 extended 模式時使用）
   isActive: boolean
   createdBy: string
   createdAt: string
@@ -293,6 +297,8 @@ export interface CheckinScheduleCreateRequest {
   endDate: string // YYYY-MM-DD
   keywords?: string[]
   expectedThreadCount?: number
+  checkinMode?: CheckinMode
+  extendedHours?: number
 }
 
 export interface CheckinScheduleUpdateRequest {
@@ -300,6 +306,8 @@ export interface CheckinScheduleUpdateRequest {
   keywords?: string[]
   expectedThreadCount?: number
   isActive?: boolean
+  checkinMode?: CheckinMode
+  extendedHours?: number
 }
 
 export interface CheckinScheduleListResponse {

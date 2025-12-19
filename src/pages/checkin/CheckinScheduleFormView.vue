@@ -27,6 +27,8 @@ const form = ref({
   endDate: '',
   keywords: [] as string[],
   expectedThreadCount: undefined as number | undefined,
+  checkinMode: 'standard' as 'standard' | 'extended' | 'all_period',
+  extendedHours: undefined as number | undefined,
 })
 
 // 頻道過濾
@@ -99,6 +101,16 @@ function validateForm(): string | null {
     return '結束日期不可早於開始日期'
   }
 
+  // 驗證延後時數（extended 模式時必填）
+  if (form.value.checkinMode === 'extended') {
+    if (!form.value.extendedHours) {
+      return '請輸入延後計算時數'
+    }
+    if (form.value.extendedHours < 1 || form.value.extendedHours > 72) {
+      return '延後計算時數須在 1-72 小時之間'
+    }
+  }
+
   return null
 }
 
@@ -120,6 +132,9 @@ async function handleSubmit() {
       endDate: form.value.endDate,
       keywords: form.value.keywords.length > 0 ? form.value.keywords : undefined,
       expectedThreadCount: form.value.expectedThreadCount,
+      checkinMode: form.value.checkinMode,
+      extendedHours:
+        form.value.checkinMode === 'extended' ? form.value.extendedHours : undefined,
     }
 
     if (isEditMode.value && scheduleId.value) {
@@ -175,6 +190,8 @@ onMounted(async () => {
         endDate: schedule.endDate,
         keywords: schedule.keywords || [],
         expectedThreadCount: schedule.expectedThreadCount,
+        checkinMode: schedule.checkinMode || 'standard',
+        extendedHours: schedule.extendedHours,
       }
     } catch (error) {
       alert('載入排程失敗')
@@ -326,6 +343,106 @@ onMounted(async () => {
         <div class="flex items-center gap-3 border-b border-gray-200 pb-3">
           <i class="bi bi-sliders text-indigo-600 text-lg"></i>
           <h2 class="text-lg font-semibold text-gray-800">進階設定</h2>
+        </div>
+
+        <!-- 打卡計算模式 -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            打卡計算模式 <span class="text-red-500">*</span>
+          </label>
+          <div class="space-y-3">
+            <!-- Standard 模式 -->
+            <label
+              class="flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition"
+              :class="
+                form.checkinMode === 'standard'
+                  ? 'border-indigo-500 bg-indigo-50'
+                  : 'border-gray-200 hover:border-gray-300'
+              "
+            >
+              <input
+                v-model="form.checkinMode"
+                type="radio"
+                name="checkinMode"
+                value="standard"
+                class="mt-1"
+              />
+              <div class="flex-1">
+                <div class="font-medium text-gray-800">標準模式（24小時內）</div>
+                <p class="text-xs text-gray-500 mt-1">
+                  用戶須在討論串建立後 24 小時內留言，才算打卡成功
+                </p>
+              </div>
+            </label>
+
+            <!-- Extended 模式 -->
+            <label
+              class="flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition"
+              :class="
+                form.checkinMode === 'extended'
+                  ? 'border-indigo-500 bg-indigo-50'
+                  : 'border-gray-200 hover:border-gray-300'
+              "
+            >
+              <input
+                v-model="form.checkinMode"
+                type="radio"
+                name="checkinMode"
+                value="extended"
+                class="mt-1"
+              />
+              <div class="flex-1">
+                <div class="font-medium text-gray-800">延後計算時間</div>
+                <p class="text-xs text-gray-500 mt-1">
+                  用戶在當日結束後的指定時數內留言，仍可被計算為打卡成功
+                </p>
+                <!-- 延後時數輸入 -->
+                <div v-if="form.checkinMode === 'extended'" class="mt-3">
+                  <label class="block text-xs font-medium text-gray-600 mb-1">
+                    延後時數（1-72 小時）
+                  </label>
+                  <div class="flex items-center gap-2">
+                    <input
+                      v-model.number="form.extendedHours"
+                      type="number"
+                      min="1"
+                      max="72"
+                      placeholder="12"
+                      class="w-24 px-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                    />
+                    <span class="text-sm text-gray-500">小時</span>
+                  </div>
+                  <p class="text-xs text-gray-400 mt-1">
+                    例如：設定 12 小時，則用戶在隔日中午 12 點前留言皆可計算
+                  </p>
+                </div>
+              </div>
+            </label>
+
+            <!-- All Period 模式 -->
+            <label
+              class="flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition"
+              :class="
+                form.checkinMode === 'all_period'
+                  ? 'border-indigo-500 bg-indigo-50'
+                  : 'border-gray-200 hover:border-gray-300'
+              "
+            >
+              <input
+                v-model="form.checkinMode"
+                type="radio"
+                name="checkinMode"
+                value="all_period"
+                class="mt-1"
+              />
+              <div class="flex-1">
+                <div class="font-medium text-gray-800">不分時段</div>
+                <p class="text-xs text-gray-500 mt-1">
+                  用戶在整個排程期間（開始日期至結束日期）內的任何時間留言，均可被計算為打卡成功
+                </p>
+              </div>
+            </label>
+          </div>
         </div>
 
         <!-- 關鍵字篩選 -->
