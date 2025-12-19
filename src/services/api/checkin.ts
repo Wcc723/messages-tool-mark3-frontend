@@ -7,6 +7,9 @@ import type {
   CheckinScheduleListResponse,
   CheckinScheduleQueryParams,
   CheckinRescanRequest,
+  CheckinRescanResponse,
+  ScanStatusResponse,
+  ScanResultResponse,
 } from './types'
 
 // ============================================
@@ -85,9 +88,13 @@ export async function toggleCheckinSchedule(id: string) {
  * POST /api/checkin-schedules/:id/rescan
  * @param id 排程 ID
  * @param data 可選，包含 scanDate（YYYY-MM-DD）。若不提供則掃描全部
+ * @returns 包含 scanLogId 用於後續查詢掃描狀態
  */
 export async function rescanCheckinSchedule(id: string, data?: CheckinRescanRequest) {
-  const response = await apiClient.post<ApiResponse>(`/api/checkin-schedules/${id}/rescan`, data)
+  const response = await apiClient.post<ApiResponse<CheckinRescanResponse>>(
+    `/api/checkin-schedules/${id}/rescan`,
+    data
+  )
   return response.data
 }
 
@@ -107,4 +114,32 @@ export async function getCronStatus() {
 export async function triggerHourlyScan() {
   const response = await apiClient.post<ApiResponse>('/api/checkin-schedules/trigger-hourly-scan')
   return response.data
+}
+
+// ============================================
+// 掃描狀態查詢
+// ============================================
+
+/**
+ * 取得掃描任務狀態
+ * GET /api/checkin-schedules/scan-status/:scanLogId
+ * @param scanLogId 掃描日誌 ID
+ */
+export async function getScanStatus(scanLogId: string) {
+  const response = await apiClient.get<ApiResponse<ScanStatusResponse>>(
+    `/api/checkin-schedules/scan-status/${scanLogId}`
+  )
+  return response.data.data!
+}
+
+/**
+ * 取得掃描任務結果
+ * GET /api/checkin-schedules/scan-result/:scanLogId
+ * @param scanLogId 掃描日誌 ID
+ */
+export async function getScanResult(scanLogId: string) {
+  const response = await apiClient.get<ApiResponse<ScanResultResponse>>(
+    `/api/checkin-schedules/scan-result/${scanLogId}`
+  )
+  return response.data.data!
 }

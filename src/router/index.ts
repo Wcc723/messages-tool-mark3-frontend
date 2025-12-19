@@ -130,6 +130,15 @@ const routes: RouteRecordRaw[] = [
           permissionPath: '/dashboard/checkin/schedules/edit/:id',
         },
       },
+      {
+        path: 'checkin/schedules/:id/report',
+        name: 'CheckinScheduleReport',
+        component: () => import('@/pages/checkin/CheckinReportView.vue'),
+        meta: {
+          requiresAuth: true,
+          // 不需要特別授權，只需登入即可查看報告
+        },
+      },
     ],
   },
 ]

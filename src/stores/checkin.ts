@@ -6,7 +6,8 @@ import type {
   CheckinScheduleCreateRequest,
   CheckinScheduleUpdateRequest,
   CheckinScheduleQueryParams,
-  CheckinRescanRequest
+  ScanStatusResponse,
+  ScanResultResponse,
 } from '@/services/api'
 
 export const useCheckinStore = defineStore('checkin', () => {
@@ -15,6 +16,14 @@ export const useCheckinStore = defineStore('checkin', () => {
   const currentSchedule = ref<CheckinSchedule | null>(null)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
+
+  // 掃描狀態
+  const currentScanLog = ref<{
+    scanLogId: string
+    scheduleId: string
+    status: ScanStatusResponse | null
+    result: ScanResultResponse | null
+  } | null>(null)
 
   // Actions
 
@@ -170,23 +179,77 @@ export const useCheckinStore = defineStore('checkin', () => {
   }
 
   /**
-   * 手動重新掃描
+   * 手動重新掃描（啟動掃描並取得 scanLogId）
    * @param id 排程 ID
    * @param scanDate 可選，指定掃描日期（YYYY-MM-DD）。不指定則掃描全部
+   * @returns scanLogId 用於後續查詢掃描狀態
    */
   async function rescanSchedule(id: string, scanDate?: string) {
     isLoading.value = true
     error.value = null
 
     try {
-      const data: CheckinRescanRequest | undefined = scanDate ? { scanDate } : undefined
-      await checkinApi.rescanCheckinSchedule(id, data)
+      const data = scanDate ? { scanDate } : undefined
+      const response = await checkinApi.rescanCheckinSchedule(id, data)
+
+      // 儲存 scanLogId 以便後續查詢
+      if (response.data?.scanLogId) {
+        currentScanLog.value = {
+          scanLogId: response.data.scanLogId,
+          scheduleId: id,
+          status: null,
+          result: null,
+        }
+      }
+
+      return response.data?.scanLogId
     } catch (err: any) {
       error.value = err.response?.data?.message || '重新掃描失敗'
       throw err
     } finally {
       isLoading.value = false
     }
+  }
+
+  /**
+   * 取得掃描狀態
+   * @param scanLogId 掃描日誌 ID
+   */
+  async function fetchScanStatus(scanLogId: string) {
+    try {
+      const status = await checkinApi.getScanStatus(scanLogId)
+      if (currentScanLog.value?.scanLogId === scanLogId) {
+        currentScanLog.value.status = status
+      }
+      return status
+    } catch (err: any) {
+      error.value = err.response?.data?.message || '取得掃描狀態失敗'
+      throw err
+    }
+  }
+
+  /**
+   * 取得掃描結果
+   * @param scanLogId 掃描日誌 ID
+   */
+  async function fetchScanResult(scanLogId: string) {
+    try {
+      const result = await checkinApi.getScanResult(scanLogId)
+      if (currentScanLog.value?.scanLogId === scanLogId) {
+        currentScanLog.value.result = result
+      }
+      return result
+    } catch (err: any) {
+      error.value = err.response?.data?.message || '取得掃描結果失敗'
+      throw err
+    }
+  }
+
+  /**
+   * 清除掃描日誌狀態
+   */
+  function clearScanLog() {
+    currentScanLog.value = null
   }
 
   /**
@@ -209,6 +272,7 @@ export const useCheckinStore = defineStore('checkin', () => {
   function reset() {
     schedules.value = []
     currentSchedule.value = null
+    currentScanLog.value = null
     error.value = null
   }
 
@@ -216,6 +280,7 @@ export const useCheckinStore = defineStore('checkin', () => {
     // State
     schedules,
     currentSchedule,
+    currentScanLog,
     isLoading,
     error,
     // Actions
@@ -226,6 +291,9 @@ export const useCheckinStore = defineStore('checkin', () => {
     deleteSchedule,
     toggleSchedule,
     rescanSchedule,
+    fetchScanStatus,
+    fetchScanResult,
+    clearScanLog,
     clearCurrentSchedule,
     clearError,
     reset,

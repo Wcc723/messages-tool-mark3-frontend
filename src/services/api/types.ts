@@ -314,3 +314,97 @@ export interface CheckinScheduleQueryParams {
 export interface CheckinRescanRequest {
   scanDate?: string // YYYY-MM-DD，可選，不指定則掃描全部
 }
+
+export interface CheckinRescanResponse {
+  scanLogId: string
+  message: string
+}
+
+// ============================================
+// 掃描狀態相關
+// ============================================
+
+export type ScanStatus = 'queued' | 'running' | 'completed' | 'failed'
+
+export interface ScanProgress {
+  phase: string
+  totalThreads: number
+  processedThreads: number
+  currentThread?: {
+    id: string
+    name: string
+  }
+}
+
+export interface ScanStatusResponse {
+  id: string
+  status: ScanStatus
+  progress?: ScanProgress
+  startTime?: string
+  endTime?: string
+  threadsFound?: number
+  checkinsRecorded?: number
+  errorMessage?: string
+}
+
+export interface ScanResultThread {
+  id: string
+  name: string
+  checkinsFound: number
+  status: string
+  error?: string
+}
+
+export interface ScanResultSummary {
+  totalApiCalls: number
+  totalDuration: number
+  failedThreads: number
+}
+
+export interface ScanResultResponse {
+  id: string
+  status: string
+  result?: {
+    threads: ScanResultThread[]
+    summary: ScanResultSummary
+  }
+  duration?: number
+  threadsFound?: number
+  checkinsRecorded?: number
+}
+
+// ============================================
+// 打卡統計與用戶相關（Public API）
+// ============================================
+
+export interface CheckinStats {
+  scheduleId: string
+  scheduleName: string
+  totalCheckins: number
+  dailyTasks: number
+  expectedTasks: number
+  progress: number
+  uniqueUsers: number
+  channelInfo?: Record<string, unknown>
+  dailyStats?: Array<Record<string, unknown>>
+}
+
+export interface CheckinUser {
+  discordUserId: string
+  username: string
+  displayName: string
+  avatarUrl?: string
+  totalCheckinDays: number
+  checkinStatus?: Record<string, unknown>
+}
+
+export interface CheckinUsersResponse {
+  users: CheckinUser[]
+  pagination: PaginationMeta
+}
+
+export interface CheckinUsersQueryParams {
+  page?: number
+  limit?: number
+  search?: string
+}

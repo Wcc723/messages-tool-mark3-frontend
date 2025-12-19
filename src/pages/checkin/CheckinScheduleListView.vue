@@ -4,11 +4,14 @@ import { useRouter } from 'vue-router'
 import { useCheckinStore } from '@/stores/checkin'
 import { useDiscordStore } from '@/stores/discord'
 import { usePermission } from '@/composables/usePermission'
+import { useToast } from '@/composables/useToast'
+import type { ScanStatusResponse, ScanResultResponse } from '@/services/api/types'
 
 const router = useRouter()
 const checkinStore = useCheckinStore()
 const discordStore = useDiscordStore()
 const { hasPermission } = usePermission()
+const toast = useToast()
 
 const canCreate = computed(() => hasPermission('checkin', 'canCreate'))
 const canEdit = computed(() => hasPermission('checkin', 'canEdit'))
@@ -22,6 +25,46 @@ const rescanMode = ref<'all' | 'single'>('all')
 const rescanDate = ref('')
 const isRescanning = ref(false)
 
+// 掃描狀態追蹤
+const currentScanLogId = ref<string | null>(null)
+const scanStatus = ref<ScanStatusResponse | null>(null)
+const scanResult = ref<ScanResultResponse | null>(null)
+const isFetchingStatus = ref(false)
+
+// 掃描狀態顏色
+const statusColorClass = computed(() => {
+  if (!scanStatus.value) return 'bg-gray-400'
+  switch (scanStatus.value.status) {
+    case 'queued':
+      return 'bg-yellow-500'
+    case 'running':
+      return 'bg-blue-500'
+    case 'completed':
+      return 'bg-emerald-500'
+    case 'failed':
+      return 'bg-red-500'
+    default:
+      return 'bg-gray-400'
+  }
+})
+
+// 掃描狀態文字
+const statusText = computed(() => {
+  if (!scanStatus.value) return '未知'
+  switch (scanStatus.value.status) {
+    case 'queued':
+      return '排隊中'
+    case 'running':
+      return '掃描中'
+    case 'completed':
+      return '已完成'
+    case 'failed':
+      return '失敗'
+    default:
+      return scanStatus.value.status
+  }
+})
+
 // 解析頻道名稱
 function getChannelName(channelId: string): string {
   const channel = discordStore.channels.find((c) => c.id === channelId)
@@ -32,10 +75,10 @@ function getChannelName(channelId: string): string {
 async function copyScheduleId(id: string) {
   try {
     await navigator.clipboard.writeText(id)
-    alert('排程 ID 已複製到剪貼簿！')
+    toast.success('排程 ID 已複製到剪貼簿')
   } catch (err) {
     console.error('複製失敗:', err)
-    alert('複製失敗，請手動複製')
+    toast.error('複製失敗，請手動複製')
   }
 }
 
@@ -47,9 +90,9 @@ async function handleDelete(id: string, name: string) {
 
   try {
     await checkinStore.deleteSchedule(id)
-    alert('排程已刪除')
+    toast.success('排程已刪除')
   } catch {
-    alert(checkinStore.error || '刪除失敗')
+    toast.error(checkinStore.error || '刪除失敗')
   }
 }
 
@@ -58,7 +101,7 @@ async function handleToggle(id: string) {
   try {
     await checkinStore.toggleSchedule(id)
   } catch {
-    alert(checkinStore.error || '切換狀態失敗')
+    toast.error(checkinStore.error || '切換狀態失敗')
   }
 }
 
@@ -68,6 +111,10 @@ function openRescanModal(id: string, name: string) {
   rescanScheduleName.value = name
   rescanMode.value = 'all'
   rescanDate.value = ''
+  // 清除之前的掃描狀態
+  currentScanLogId.value = null
+  scanStatus.value = null
+  scanResult.value = null
   showRescanModal.value = true
 }
 
@@ -85,7 +132,7 @@ async function executeRescan() {
   if (rescanMode.value === 'single') {
     // 驗證日期
     if (!rescanDate.value) {
-      alert('請選擇要掃描的日期')
+      toast.warning('請選擇要掃描的日期')
       return
     }
   }
@@ -93,19 +140,53 @@ async function executeRescan() {
   isRescanning.value = true
 
   try {
-    if (rescanMode.value === 'all') {
-      await checkinStore.rescanSchedule(rescanScheduleId.value)
-      alert('已開始重新掃描全部日期')
+    const scanLogId = await checkinStore.rescanSchedule(
+      rescanScheduleId.value,
+      rescanMode.value === 'single' ? rescanDate.value : undefined
+    )
+
+    if (scanLogId) {
+      currentScanLogId.value = scanLogId
+      // 自動查詢一次狀態
+      await refreshScanStatus()
     } else {
-      await checkinStore.rescanSchedule(rescanScheduleId.value, rescanDate.value)
-      alert(`已開始重新掃描 ${rescanDate.value}`)
+      // 如果沒有返回 scanLogId，顯示傳統提示
+      const msg =
+        rescanMode.value === 'all'
+          ? '已開始重新掃描全部日期'
+          : `已開始重新掃描 ${rescanDate.value}`
+      toast.success(msg)
+      closeRescanModal()
     }
-    closeRescanModal()
   } catch {
-    alert(checkinStore.error || '掃描失敗')
+    toast.error(checkinStore.error || '掃描失敗')
   } finally {
     isRescanning.value = false
   }
+}
+
+// 刷新掃描狀態
+async function refreshScanStatus() {
+  if (!currentScanLogId.value) return
+
+  isFetchingStatus.value = true
+  try {
+    scanStatus.value = await checkinStore.fetchScanStatus(currentScanLogId.value)
+
+    // 如果完成，同時取得結果
+    if (scanStatus.value.status === 'completed') {
+      scanResult.value = await checkinStore.fetchScanResult(currentScanLogId.value)
+    }
+  } catch (err) {
+    console.error('取得掃描狀態失敗:', err)
+  } finally {
+    isFetchingStatus.value = false
+  }
+}
+
+// 查看報告
+function viewReport(id: string) {
+  router.push({ name: 'CheckinScheduleReport', params: { id } })
 }
 
 // 編輯排程
@@ -299,6 +380,14 @@ onMounted(async () => {
                 <div class="inline-flex items-center gap-2">
                   <button
                     type="button"
+                    class="p-2 text-gray-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition cursor-pointer"
+                    title="查看報告"
+                    @click="viewReport(schedule.id)"
+                  >
+                    <i class="bi bi-bar-chart-line"></i>
+                  </button>
+                  <button
+                    type="button"
                     class="p-2 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition cursor-pointer"
                     title="重新掃描"
                     @click="openRescanModal(schedule.id, schedule.name)"
@@ -406,6 +495,56 @@ onMounted(async () => {
               v-model="rescanDate"
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
+          </div>
+
+          <!-- 掃描狀態顯示區塊 -->
+          <div v-if="currentScanLogId" class="mt-4 p-4 bg-gray-50 rounded-lg">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-medium text-gray-700">掃描狀態</span>
+              <button
+                type="button"
+                class="text-sm text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-1 cursor-pointer"
+                :disabled="isFetchingStatus"
+                @click="refreshScanStatus"
+              >
+                <i class="bi bi-arrow-clockwise" :class="{ 'animate-spin': isFetchingStatus }"></i>
+                刷新
+              </button>
+            </div>
+
+            <!-- 狀態指示器 -->
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full" :class="statusColorClass"></span>
+              <span class="text-sm">{{ statusText }}</span>
+            </div>
+
+            <!-- 進度資訊 -->
+            <div v-if="scanStatus?.progress" class="mt-2 text-xs text-gray-500">
+              階段: {{ scanStatus.progress.phase }}
+              <br />
+              處理中: {{ scanStatus.progress.processedThreads }} / {{ scanStatus.progress.totalThreads }} 討論串
+              <template v-if="scanStatus.progress.currentThread">
+                <br />
+                目前: {{ scanStatus.progress.currentThread.name }}
+              </template>
+            </div>
+
+            <!-- 錯誤訊息 -->
+            <div v-if="scanStatus?.errorMessage" class="mt-2 text-xs text-red-600">
+              錯誤: {{ scanStatus.errorMessage }}
+            </div>
+
+            <!-- 完成結果 -->
+            <div v-if="scanResult" class="mt-3 p-3 bg-white rounded border border-gray-200">
+              <p class="text-sm font-medium text-gray-800">掃描完成</p>
+              <p class="text-xs text-gray-600 mt-1">
+                發現 {{ scanResult.threadsFound }} 個討論串，
+                記錄 {{ scanResult.checkinsRecorded }} 筆打卡
+              </p>
+              <p v-if="scanResult.duration" class="text-xs text-gray-500 mt-1">
+                耗時: {{ Math.round(scanResult.duration / 1000) }} 秒
+              </p>
+            </div>
           </div>
         </div>
 
