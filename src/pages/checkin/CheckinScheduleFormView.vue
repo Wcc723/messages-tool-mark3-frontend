@@ -22,6 +22,7 @@ const keywordInput = ref('')
 // 表單資料
 const form = ref({
   name: '',
+  slug: '',
   channelId: '',
   startDate: '',
   endDate: '',
@@ -30,6 +31,46 @@ const form = ref({
   checkinMode: 'standard' as 'standard' | 'extended' | 'all_period',
   extendedHours: undefined as number | undefined,
 })
+
+// Slug 驗證錯誤訊息
+const slugError = ref('')
+
+// 驗證 Slug 格式
+function validateSlug(value: string): string | null {
+  if (!value) return null // 選填欄位
+
+  // 長度檢查
+  if (value.length < 3 || value.length > 50) {
+    return 'Slug 長度須為 3-50 字元'
+  }
+
+  // 字元檢查（小寫英文、數字、連字號）
+  if (!/^[a-z0-9-]+$/.test(value)) {
+    return 'Slug 只能包含小寫英文、數字及連字號'
+  }
+
+  // 開頭必須為英文字母
+  if (!/^[a-z]/.test(value)) {
+    return 'Slug 開頭必須為英文字母'
+  }
+
+  // 結尾不可為連字號
+  if (value.endsWith('-')) {
+    return 'Slug 結尾不可為連字號'
+  }
+
+  // 不允許連續連字號
+  if (/--/.test(value)) {
+    return 'Slug 不可包含連續連字號'
+  }
+
+  return null
+}
+
+// 即時驗證 Slug
+function onSlugInput() {
+  slugError.value = validateSlug(form.value.slug) || ''
+}
 
 // 頻道過濾
 const filteredChannels = computed(() => {
@@ -81,6 +122,12 @@ function validateForm(): string | null {
     return '請輸入排程名稱'
   }
 
+  // 驗證 Slug
+  const slugValidationError = validateSlug(form.value.slug)
+  if (slugValidationError) {
+    return slugValidationError
+  }
+
   if (!form.value.channelId) {
     return '請選擇 Discord 頻道'
   }
@@ -127,6 +174,7 @@ async function handleSubmit() {
   try {
     const payload = {
       name: form.value.name.trim(),
+      slug: form.value.slug.trim() || undefined,
       channelId: form.value.channelId,
       startDate: form.value.startDate,
       endDate: form.value.endDate,
@@ -185,6 +233,7 @@ onMounted(async () => {
       const schedule = await checkinStore.fetchScheduleById(scheduleId.value)
       form.value = {
         name: schedule.name,
+        slug: schedule.slug || '',
         channelId: schedule.channelId,
         startDate: schedule.startDate,
         endDate: schedule.endDate,
@@ -235,6 +284,27 @@ onMounted(async () => {
             placeholder="例如：2025 年度打卡活動"
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
+        </div>
+
+        <!-- 客製化路由（Slug） -->
+        <div>
+          <label for="slug" class="block text-sm font-medium text-gray-700 mb-1">
+            客製化路由（Slug）
+          </label>
+          <input
+            id="slug"
+            v-model="form.slug"
+            type="text"
+            maxlength="50"
+            placeholder="例如：react-2025"
+            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            :class="slugError ? 'border-red-500' : 'border-gray-300'"
+            @input="onSlugInput"
+          />
+          <p v-if="slugError" class="text-xs text-red-500 mt-1">{{ slugError }}</p>
+          <p v-else class="text-xs text-gray-500 mt-1">
+            可用於替代 ID 存取 API，僅限小寫英文、數字及連字號，3-50 字元
+          </p>
         </div>
 
         <!-- Discord 頻道 -->

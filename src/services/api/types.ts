@@ -276,6 +276,7 @@ export type CheckinMode = 'standard' | 'extended' | 'all_period'
 export interface CheckinSchedule {
   id: string
   name: string
+  slug?: string // 客製化路由別名（3-50字元，小寫英文、數字、連字號）
   channelId: string
   guildId: string
   startDate: string // YYYY-MM-DD
@@ -292,6 +293,7 @@ export interface CheckinSchedule {
 
 export interface CheckinScheduleCreateRequest {
   name: string
+  slug?: string // 客製化路由別名
   channelId: string
   startDate: string // YYYY-MM-DD
   endDate: string // YYYY-MM-DD
@@ -303,6 +305,7 @@ export interface CheckinScheduleCreateRequest {
 
 export interface CheckinScheduleUpdateRequest {
   name?: string
+  slug?: string // 客製化路由別名
   keywords?: string[]
   expectedThreadCount?: number
   isActive?: boolean

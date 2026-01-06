@@ -71,11 +71,13 @@ function getChannelName(channelId: string): string {
   return channel ? `#${channel.name}` : '未知頻道'
 }
 
-// 複製排程 ID 到剪貼簿
-async function copyScheduleId(id: string) {
+// 複製排程識別碼到剪貼簿（優先使用 slug）
+async function copyScheduleIdentifier(slug: string | undefined, id: string) {
+  const valueToCopy = slug || id
+  const label = slug ? 'Slug' : '排程 ID'
   try {
-    await navigator.clipboard.writeText(id)
-    toast.success('排程 ID 已複製到剪貼簿')
+    await navigator.clipboard.writeText(valueToCopy)
+    toast.success(`${label} 已複製到剪貼簿`)
   } catch (err) {
     console.error('複製失敗:', err)
     toast.error('複製失敗，請手動複製')
@@ -272,7 +274,7 @@ onMounted(async () => {
               <th
                 class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider"
               >
-                排程 ID
+                Slug / ID
               </th>
               <th
                 class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider"
@@ -363,14 +365,18 @@ onMounted(async () => {
               </td>
               <td class="px-6 py-4">
                 <div class="flex items-center gap-2">
-                  <span class="text-xs font-mono text-gray-600 truncate max-w-[100px]" :title="schedule.id">
-                    {{ schedule.id }}
+                  <span
+                    class="text-xs font-mono truncate max-w-[100px]"
+                    :class="schedule.slug ? 'text-indigo-600' : 'text-gray-600'"
+                    :title="schedule.slug || schedule.id"
+                  >
+                    {{ schedule.slug || schedule.id }}
                   </span>
                   <button
                     type="button"
                     class="text-gray-400 hover:text-gray-600 transition cursor-pointer"
-                    title="複製排程 ID"
-                    @click="copyScheduleId(schedule.id)"
+                    :title="schedule.slug ? '複製 Slug' : '複製排程 ID'"
+                    @click="copyScheduleIdentifier(schedule.slug, schedule.id)"
                   >
                     <i class="bi bi-clipboard text-sm"></i>
                   </button>
