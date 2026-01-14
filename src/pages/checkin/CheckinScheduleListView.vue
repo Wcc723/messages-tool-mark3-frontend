@@ -205,6 +205,15 @@ const hasSchedules = computed(() => {
   return (checkinStore.schedules?.length ?? 0) > 0
 })
 
+// 打卡頁面外部連結基礎 URL
+const dailyCheckinBaseUrl = import.meta.env.VITE_DAILY_CHECKIN_URL
+
+// 產生外部連結
+function getCheckinUrl(slug: string | undefined, id: string): string {
+  const identifier = slug || id
+  return `${dailyCheckinBaseUrl}/#/${identifier}`
+}
+
 onMounted(async () => {
   // 載入頻道列表（用於解析頻道名稱）
   if (discordStore.channels.length === 0) {
@@ -380,6 +389,16 @@ onMounted(async () => {
                   >
                     <i class="bi bi-clipboard text-sm"></i>
                   </button>
+                  <a
+                    v-if="dailyCheckinBaseUrl"
+                    :href="getCheckinUrl(schedule.slug, schedule.id)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-gray-400 hover:text-indigo-600 transition"
+                    title="開啟打卡頁面"
+                  >
+                    <i class="bi bi-box-arrow-up-right text-sm"></i>
+                  </a>
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right">
