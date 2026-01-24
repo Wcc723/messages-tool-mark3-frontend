@@ -254,6 +254,24 @@ export const useScheduleStore = defineStore('schedule', () => {
   }
 
   /**
+   * 手動執行排程
+   */
+  async function executeSchedule(id: string) {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const response = await scheduleApi.executeSchedule(id)
+      return response
+    } catch (err: any) {
+      error.value = err.response?.data?.message || '執行排程失敗'
+      throw err
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  /**
    * 清除當前排程
    */
   function clearCurrentSchedule() {
@@ -304,6 +322,7 @@ export const useScheduleStore = defineStore('schedule', () => {
     clearCopiedSchedule,
     fetchTimezones,
     fetchScheduleLogs,
+    executeSchedule,
     clearCurrentSchedule,
     clearError,
     reset,

@@ -9,6 +9,7 @@ import type {
   Timezone,
   ExecutionLogListResponse,
   ExecutionLogQueryParams,
+  ScheduleExecuteResponse,
 } from './types'
 
 // ============================================
@@ -124,4 +125,21 @@ export async function getScheduleLogs(id: string, params?: ExecutionLogQueryPara
     { params }
   )
   return response.data.data!
+}
+
+// ============================================
+// 手動執行
+// ============================================
+
+/**
+ * 手動觸發排程執行
+ * POST /api/schedules/:id/execute
+ *
+ * @param id - 排程 ID
+ */
+export async function executeSchedule(id: string) {
+  const response = await apiClient.post<ApiResponse<ScheduleExecuteResponse>>(
+    `/api/schedules/${id}/execute`
+  )
+  return response.data
 }

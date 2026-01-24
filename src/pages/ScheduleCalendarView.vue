@@ -266,6 +266,27 @@ const handleDelete = async (id: string) => {
     alert(error.response?.data?.message || '刪除排程失敗')
   }
 }
+
+const executingScheduleId = ref<string | null>(null)
+
+const handleExecute = async (id: string) => {
+  if (!confirm('確定要立即執行此排程嗎？')) return
+
+  executingScheduleId.value = id
+  try {
+    const result = await scheduleStore.executeSchedule(id)
+    if (result.success) {
+      alert(result.message || '排程執行成功！')
+    } else {
+      alert(result.message || '排程執行失敗')
+    }
+  } catch (error: any) {
+    console.error('Failed to execute schedule:', error)
+    alert(error.response?.data?.message || '執行排程失敗')
+  } finally {
+    executingScheduleId.value = null
+  }
+}
 </script>
 
 <template>
@@ -503,6 +524,15 @@ const handleDelete = async (id: string) => {
 
               <div class="flex gap-2 ml-6">
                 <button
+                  @click="handleExecute(schedule.id)"
+                  :disabled="executingScheduleId === schedule.id"
+                  class="p-2 text-green-600 rounded-md transition-colors cursor-pointer border border-transparent hover:border-green-300 hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="立即執行"
+                >
+                  <i v-if="executingScheduleId === schedule.id" class="bi bi-arrow-repeat text-lg animate-spin"></i>
+                  <i v-else class="bi bi-play-fill text-lg"></i>
+                </button>
+                <button
                   @click="handleEdit(schedule.id)"
                   class="p-2 text-gray-600 rounded-md transition-colors cursor-pointer border border-transparent hover:border-gray-300 hover:bg-gray-100"
                   title="編輯"
@@ -588,6 +618,15 @@ const handleDelete = async (id: string) => {
               </div>
 
               <div class="flex gap-2 ml-6">
+                <button
+                  @click="handleExecute(schedule.id)"
+                  :disabled="executingScheduleId === schedule.id"
+                  class="p-2 text-green-600 rounded-md transition-colors cursor-pointer border border-transparent hover:border-green-300 hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="立即執行"
+                >
+                  <i v-if="executingScheduleId === schedule.id" class="bi bi-arrow-repeat text-lg animate-spin"></i>
+                  <i v-else class="bi bi-play-fill text-lg"></i>
+                </button>
                 <button
                   @click="handleEdit(schedule.id)"
                   class="p-2 text-gray-600 rounded-md transition-colors cursor-pointer border border-transparent hover:border-gray-300 hover:bg-gray-100"
@@ -776,6 +815,15 @@ const handleDelete = async (id: string) => {
 
         <!-- Modal Footer -->
         <div class="sticky bottom-0 bg-white border-t border-gray-200 p-4 flex flex-col gap-2 sm:flex-row">
+          <button
+            @click="handleExecute(modalSchedule.id)"
+            :disabled="executingScheduleId === modalSchedule.id"
+            class="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <i v-if="executingScheduleId === modalSchedule.id" class="bi bi-arrow-repeat text-lg animate-spin"></i>
+            <i v-else class="bi bi-play-fill text-lg"></i>
+            <span>{{ executingScheduleId === modalSchedule.id ? '執行中...' : '立即執行' }}</span>
+          </button>
           <button
             @click="handleEdit(modalSchedule.id)"
             class="flex-1 px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors font-medium flex items-center justify-center gap-2"

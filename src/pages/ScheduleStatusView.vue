@@ -141,6 +141,29 @@ const handleEditSchedule = (scheduleId: string) => {
   router.push(`/dashboard/schedule/edit/${scheduleId}`)
 }
 
+const executingScheduleId = ref<string | null>(null)
+
+const handleExecuteSchedule = async (scheduleId: string) => {
+  if (!confirm('確定要立即執行此排程嗎？')) return
+
+  executingScheduleId.value = scheduleId
+  try {
+    const result = await scheduleStore.executeSchedule(scheduleId)
+    if (result.success) {
+      alert(result.message || '排程執行成功！')
+    } else {
+      alert(result.message || '排程執行失敗')
+    }
+    // 重新載入記錄
+    await fetchLogs()
+  } catch (error: any) {
+    console.error('Failed to execute schedule:', error)
+    alert(error.response?.data?.message || '執行排程失敗')
+  } finally {
+    executingScheduleId.value = null
+  }
+}
+
 onMounted(() => {
   fetchLogs()
 })
@@ -292,13 +315,25 @@ onMounted(() => {
                 </p>
               </td>
               <td class="px-4 py-4 align-top">
-                <button
-                  type="button"
-                  class="px-3 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100 transition-colors text-xs font-medium"
-                  @click="handleEditSchedule(log.scheduleId)"
-                >
-                  編輯排程
-                </button>
+                <div class="flex gap-2">
+                  <button
+                    type="button"
+                    class="px-3 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100 transition-colors text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    :disabled="executingScheduleId === log.scheduleId"
+                    @click="handleExecuteSchedule(log.scheduleId)"
+                  >
+                    <i v-if="executingScheduleId === log.scheduleId" class="bi bi-arrow-repeat animate-spin mr-1"></i>
+                    <i v-else class="bi bi-play-fill mr-1"></i>
+                    {{ executingScheduleId === log.scheduleId ? '執行中...' : '立即執行' }}
+                  </button>
+                  <button
+                    type="button"
+                    class="px-3 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-100 transition-colors text-xs font-medium"
+                    @click="handleEditSchedule(log.scheduleId)"
+                  >
+                    編輯排程
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>

@@ -267,6 +267,13 @@ export interface ExecutionLogQueryParams {
   limit?: number
 }
 
+export interface ScheduleExecuteResponse {
+  scheduleId: string
+  title: string
+  executedAt: string
+  note?: string
+}
+
 // ============================================
 // 打卡排程相關
 // ============================================
