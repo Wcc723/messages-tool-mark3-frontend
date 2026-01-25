@@ -4,7 +4,6 @@ import type {
   CheckinSchedule,
   CheckinScheduleCreateRequest,
   CheckinScheduleUpdateRequest,
-  CheckinScheduleListResponse,
   CheckinScheduleQueryParams,
   CheckinRescanRequest,
   CheckinRescanResponse,

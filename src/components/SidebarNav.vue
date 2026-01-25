@@ -62,6 +62,23 @@ const allNavGroups: NavGroup[] = [
     ],
   },
   {
+    title: 'AI 圖片生成',
+    items: [
+      {
+        name: 'AI 生成器',
+        path: '/dashboard/ai/generator',
+        icon: 'bi-stars',
+        permissionKey: 'showAiGenerator',
+      },
+      {
+        name: '角色管理',
+        path: '/dashboard/ai/characters',
+        icon: 'bi-person-badge',
+        permissionKey: 'showAiCharacters',
+      },
+    ],
+  },
+  {
     title: '系統管理',
     showIf: () => permissionStore.isAdmin(),
     items: [
@@ -70,6 +87,12 @@ const allNavGroups: NavGroup[] = [
         path: '/dashboard/admin/users',
         icon: 'bi-people',
         permissionKey: 'showUserManagement',
+      },
+      {
+        name: 'AI 統計',
+        path: '/dashboard/admin/ai',
+        icon: 'bi-bar-chart-line',
+        permissionKey: 'showAiAdmin',
       },
     ],
   },

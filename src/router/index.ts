@@ -139,6 +139,52 @@ const routes: RouteRecordRaw[] = [
           // 不需要特別授權，只需登入即可查看報告
         },
       },
+      // AI 圖片生成相關路由
+      {
+        path: 'ai/generator',
+        name: 'AiGenerator',
+        component: () => import('@/pages/ai/AiGeneratorView.vue'),
+        meta: {
+          requiresAuth: true,
+          permissionPath: '/dashboard/ai/generator',
+        },
+      },
+      {
+        path: 'ai/characters',
+        name: 'CharacterList',
+        component: () => import('@/pages/ai/CharacterListView.vue'),
+        meta: {
+          requiresAuth: true,
+          permissionPath: '/dashboard/ai/characters',
+        },
+      },
+      {
+        path: 'ai/characters/new',
+        name: 'CharacterCreate',
+        component: () => import('@/pages/ai/CharacterFormView.vue'),
+        meta: {
+          requiresAuth: true,
+          permissionPath: '/dashboard/ai/characters/new',
+        },
+      },
+      {
+        path: 'ai/characters/edit/:id',
+        name: 'CharacterEdit',
+        component: () => import('@/pages/ai/CharacterFormView.vue'),
+        meta: {
+          requiresAuth: true,
+          permissionPath: '/dashboard/ai/characters/edit/:id',
+        },
+      },
+      {
+        path: 'admin/ai',
+        name: 'AiAdmin',
+        component: () => import('@/pages/ai/AiAdminView.vue'),
+        meta: {
+          requiresAuth: true,
+          permissionPath: '/dashboard/admin/ai',
+        },
+      },
     ],
   },
 ]

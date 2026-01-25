@@ -24,6 +24,7 @@
     "gh-pages": "^6.3.0",
     "marked": "^16.3.0",
     "pinia": "^3.0.3",
+    "socket.io-client": "^4.8.3",
     "vue": "^3.5.22",
     "vue-router": "^4.5.1"
   },

@@ -48,6 +48,12 @@
           "canEditAll": true,
           "canDelete": true,
           "canDeleteAll": true
+        },
+        "ai": {
+          "canView": true,
+          "canViewAll": true,
+          "canManageCharacters": true,
+          "canViewStatistics": true
         }
       },
       "navigation": {
@@ -58,7 +64,10 @@
         "showDiscord": true,
         "showProfile": true,
         "showUserManagement": true,
-        "showCheckinSchedules": true
+        "showCheckinSchedules": true,
+        "showAiGenerator": true,
+        "showAiCharacters": true,
+        "showAiAdmin": true
       },
       "routes": {
         "allowedPaths": [
@@ -72,7 +81,12 @@
           "/dashboard/admin/users",
           "/dashboard/checkin/schedules",
           "/dashboard/checkin/schedules/new",
-          "/dashboard/checkin/schedules/edit/:id"
+          "/dashboard/checkin/schedules/edit/:id",
+          "/dashboard/ai/generator",
+          "/dashboard/ai/characters",
+          "/dashboard/ai/characters/new",
+          "/dashboard/ai/characters/edit/:id",
+          "/dashboard/admin/ai"
         ]
       }
     },
@@ -124,6 +138,12 @@
           "canEditAll": true,
           "canDelete": true,
           "canDeleteAll": true
+        },
+        "ai": {
+          "canView": true,
+          "canViewAll": true,
+          "canManageCharacters": true,
+          "canViewStatistics": true
         }
       },
       "navigation": {
@@ -134,7 +154,10 @@
         "showDiscord": true,
         "showProfile": true,
         "showUserManagement": true,
-        "showCheckinSchedules": true
+        "showCheckinSchedules": true,
+        "showAiGenerator": true,
+        "showAiCharacters": true,
+        "showAiAdmin": true
       },
       "routes": {
         "allowedPaths": [
@@ -148,7 +171,12 @@
           "/dashboard/admin/users",
           "/dashboard/checkin/schedules",
           "/dashboard/checkin/schedules/new",
-          "/dashboard/checkin/schedules/edit/:id"
+          "/dashboard/checkin/schedules/edit/:id",
+          "/dashboard/ai/generator",
+          "/dashboard/ai/characters",
+          "/dashboard/ai/characters/new",
+          "/dashboard/ai/characters/edit/:id",
+          "/dashboard/admin/ai"
         ]
       }
     },
@@ -200,6 +228,12 @@
           "canEditAll": false,
           "canDelete": true,
           "canDeleteAll": false
+        },
+        "ai": {
+          "canView": true,
+          "canViewAll": false,
+          "canManageCharacters": true,
+          "canViewStatistics": false
         }
       },
       "navigation": {
@@ -210,7 +244,10 @@
         "showDiscord": true,
         "showProfile": true,
         "showUserManagement": false,
-        "showCheckinSchedules": true
+        "showCheckinSchedules": true,
+        "showAiGenerator": true,
+        "showAiCharacters": true,
+        "showAiAdmin": false
       },
       "routes": {
         "allowedPaths": [
@@ -223,7 +260,11 @@
           "/dashboard/profile",
           "/dashboard/checkin/schedules",
           "/dashboard/checkin/schedules/new",
-          "/dashboard/checkin/schedules/edit/:id"
+          "/dashboard/checkin/schedules/edit/:id",
+          "/dashboard/ai/generator",
+          "/dashboard/ai/characters",
+          "/dashboard/ai/characters/new",
+          "/dashboard/ai/characters/edit/:id"
         ]
       }
     },
@@ -276,6 +317,12 @@
           "canEditAll": false,
           "canDelete": false,
           "canDeleteAll": false
+        },
+        "ai": {
+          "canView": false,
+          "canViewAll": false,
+          "canManageCharacters": false,
+          "canViewStatistics": false
         }
       },
       "navigation": {
@@ -286,7 +333,10 @@
         "showDiscord": false,
         "showProfile": true,
         "showUserManagement": false,
-        "showCheckinSchedules": false
+        "showCheckinSchedules": false,
+        "showAiGenerator": false,
+        "showAiCharacters": false,
+        "showAiAdmin": false
       },
       "routes": {
         "allowedPaths": [
@@ -302,6 +352,7 @@
     "discord": "Discord 整合",
     "images": "圖片管理",
     "system": "系統管理",
-    "checkin": "打卡排程管理"
+    "checkin": "打卡排程管理",
+    "ai": "AI 圖片生成"
   }
 }

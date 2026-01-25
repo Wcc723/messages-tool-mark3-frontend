@@ -23,6 +23,7 @@ export interface FeaturePermissions {
   images: ImagePermissions
   system: SystemPermissions
   checkin: CheckinPermissions
+  ai: AIPermissions
 }
 
 export interface UserPermissions {
@@ -76,6 +77,13 @@ export interface CheckinPermissions {
   canDeleteAll: boolean
 }
 
+export interface AIPermissions {
+  canView: boolean
+  canViewAll: boolean
+  canManageCharacters: boolean
+  canViewStatistics: boolean
+}
+
 export interface NavigationPermissions {
   showScheduleNew: boolean
   showScheduleEdit: boolean
@@ -85,6 +93,9 @@ export interface NavigationPermissions {
   showProfile: boolean
   showUserManagement: boolean
   showCheckinSchedules: boolean
+  showAiGenerator: boolean
+  showAiCharacters: boolean
+  showAiAdmin: boolean
 }
 
 export interface RoutePermissions {

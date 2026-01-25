@@ -1,0 +1,319 @@
+import { ref, computed } from 'vue'
+import { defineStore } from 'pinia'
+import {
+  ImageGenerationSocket,
+  imageGenerationSocket,
+} from '@/services/imageGenerationSocket'
+import type {
+  AIModel,
+  ConnectionState,
+  SessionSettings,
+  GenerationSession,
+  GenerationResult,
+  AuthenticatedUser,
+  SessionCreatedEvent,
+  SessionResumedEvent,
+  GeneratedEvent,
+  WSError,
+} from '@/types/ai-generation'
+
+export const useAiGenerationStore = defineStore('aiGeneration', () => {
+  // ============================================
+  // State
+  // ============================================
+
+  const socket = ref<ImageGenerationSocket>(imageGenerationSocket)
+  const connectionState = ref<ConnectionState>('disconnected')
+  const authenticatedUser = ref<AuthenticatedUser | null>(null)
+  const currentSession = ref<GenerationSession | null>(null)
+  const generationHistory = ref<GenerationResult[]>([])
+  const isGenerating = ref(false)
+  const error = ref<string | null>(null)
+  const lastError = ref<WSError | null>(null)
+
+  // ============================================
+  // Getters
+  // ============================================
+
+  const isConnected = computed(() => {
+    return connectionState.value === 'connected' || connectionState.value === 'authenticated'
+  })
+
+  const isAuthenticated = computed(() => {
+    return connectionState.value === 'authenticated'
+  })
+
+  const hasActiveSession = computed(() => {
+    return currentSession.value !== null && currentSession.value.status === 'active'
+  })
+
+  const sessionExpiresIn = computed(() => {
+    if (!currentSession.value?.expiresAt) return null
+    const expiresAt = new Date(currentSession.value.expiresAt).getTime()
+    const now = Date.now()
+    return Math.max(0, expiresAt - now)
+  })
+
+  // ============================================
+  // 連線管理
+  // ============================================
+
+  /**
+   * 連線到 WebSocket 伺服器
+   */
+  function connect(token: string) {
+    error.value = null
+    lastError.value = null
+    connectionState.value = 'connecting'
+
+    // 設定事件處理器
+    socket.value.setEventHandlers({
+      onConnected: () => {
+        connectionState.value = 'connected'
+      },
+      onDisconnected: (reason) => {
+        connectionState.value = 'disconnected'
+        if (reason !== 'io client disconnect') {
+          error.value = `連線中斷: ${reason}`
+        }
+      },
+      onAuthenticated: (user) => {
+        connectionState.value = 'authenticated'
+        authenticatedUser.value = user
+      },
+      onAuthFailed: (wsError) => {
+        lastError.value = wsError
+        error.value = wsError.message
+        connectionState.value = 'disconnected'
+      },
+      onSessionCreated: handleSessionCreated,
+      onSessionResumed: handleSessionResumed,
+      onSessionEnded: handleSessionEnded,
+      onSessionExpired: handleSessionExpired,
+      onGenerating: () => {
+        isGenerating.value = true
+      },
+      onGenerated: handleGenerated,
+      onError: handleError,
+    })
+
+    socket.value.connect(token)
+  }
+
+  /**
+   * 斷開連線
+   */
+  function disconnect() {
+    socket.value.disconnect()
+    connectionState.value = 'disconnected'
+    authenticatedUser.value = null
+    currentSession.value = null
+    generationHistory.value = []
+    isGenerating.value = false
+  }
+
+  /**
+   * 重新連線
+   */
+  function reconnect() {
+    socket.value.reconnect()
+  }
+
+  // ============================================
+  // Session 管理
+  // ============================================
+
+  /**
+   * 開始新 Session
+   */
+  function startSession(model: AIModel, characterId?: string, settings?: SessionSettings) {
+    error.value = null
+    socket.value.startSession(model, characterId, settings)
+  }
+
+  /**
+   * 恢復既有 Session
+   */
+  function resumeSession(sessionId: string) {
+    error.value = null
+    socket.value.resumeSession(sessionId)
+  }
+
+  /**
+   * 結束 Session
+   */
+  function endSession() {
+    if (currentSession.value) {
+      socket.value.endSession(currentSession.value.id)
+    }
+  }
+
+  // ============================================
+  // 圖片生成
+  // ============================================
+
+  /**
+   * 發送生成請求
+   */
+  function generate(prompt: string, referenceImage?: { url: string; description?: string }) {
+    if (!currentSession.value) {
+      error.value = '尚未建立 Session'
+      return
+    }
+
+    error.value = null
+    isGenerating.value = true
+    socket.value.generate(currentSession.value.id, prompt, referenceImage)
+  }
+
+  // ============================================
+  // 事件處理
+  // ============================================
+
+  function handleSessionCreated(event: SessionCreatedEvent) {
+    if (!event.success) return
+
+    const session = event.session
+    currentSession.value = {
+      id: session.id,
+      model: session.model,
+      settings: session.settings,
+      characterId: session.characterId,
+      characterName: session.characterName,
+      expiresAt: session.expiresAt,
+      status: 'active',
+    }
+    generationHistory.value = []
+  }
+
+  function handleSessionResumed(event: SessionResumedEvent) {
+    if (!event.success) return
+
+    const session = event.session
+    currentSession.value = {
+      id: session.id,
+      model: session.model,
+      settings: session.settings,
+      characterId: session.characterId,
+      characterName: session.characterName,
+      expiresAt: session.expiresAt,
+      status: 'active',
+    }
+    // 恢復時不載入歷史，因為 AsyncAPI 的 SessionResumedPayload 沒有 history
+    generationHistory.value = []
+  }
+
+  function handleSessionEnded(sessionId: string) {
+    if (currentSession.value?.id === sessionId) {
+      currentSession.value = null
+      generationHistory.value = []
+    }
+  }
+
+  function handleSessionExpired(sessionId: string) {
+    if (currentSession.value?.id === sessionId) {
+      currentSession.value = {
+        ...currentSession.value,
+        status: 'expired',
+      }
+      error.value = 'Session 已過期，請建立新的 Session'
+    }
+  }
+
+  function handleGenerated(result: GeneratedEvent) {
+    isGenerating.value = false
+
+    const generationResult: GenerationResult = {
+      sessionId: result.sessionId,
+      success: result.success,
+      historyId: result.historyId,
+      imageUrl: result.imageUrl,
+      text: result.text,
+      prompt: result.prompt,
+      inputTokens: result.inputTokens,
+      outputTokens: result.outputTokens,
+      status: result.status,
+      errorMessage: result.errorMessage,
+      generatedAt: result.generatedAt,
+    }
+
+    generationHistory.value.unshift(generationResult)
+
+    if (!result.success) {
+      error.value = result.errorMessage || '生成失敗，請稍後再試'
+    } else if (result.status === 'filtered') {
+      error.value = result.errorMessage || '內容被過濾，請修改 prompt 後重試'
+    }
+  }
+
+  function handleError(wsError: WSError) {
+    isGenerating.value = false
+    lastError.value = wsError
+    error.value = wsError.message
+
+    // 特定錯誤處理（對應 AsyncAPI ErrorPayload.type）
+    switch (wsError.type) {
+      case 'permission_denied':
+        connectionState.value = 'disconnected'
+        break
+      case 'session_expired':
+        if (currentSession.value) {
+          currentSession.value.status = 'expired'
+        }
+        break
+      case 'start_session_failed':
+      case 'resume_session_failed':
+      case 'generation_failed':
+      case 'invalid_model':
+        // 保持錯誤訊息顯示
+        break
+    }
+  }
+
+  // ============================================
+  // 工具方法
+  // ============================================
+
+  /**
+   * 清除錯誤
+   */
+  function clearError() {
+    error.value = null
+    lastError.value = null
+  }
+
+  /**
+   * 重置 Store
+   */
+  function reset() {
+    disconnect()
+    error.value = null
+    lastError.value = null
+  }
+
+  return {
+    // State
+    connectionState,
+    authenticatedUser,
+    currentSession,
+    generationHistory,
+    isGenerating,
+    error,
+    lastError,
+    // Getters
+    isConnected,
+    isAuthenticated,
+    hasActiveSession,
+    sessionExpiresIn,
+    // Actions
+    connect,
+    disconnect,
+    reconnect,
+    startSession,
+    resumeSession,
+    endSession,
+    generate,
+    clearError,
+    reset,
+  }
+})
