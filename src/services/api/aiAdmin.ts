@@ -6,12 +6,19 @@ import type {
   AIUsageTrend,
   AIUserUsage,
   AIUserUsageQueryParams,
-  AIUserUsageListResponse,
   AILeaderboardItem,
   AILeaderboardQueryParams,
   GenerationHistoryQueryParams,
-  GenerationHistoryListResponse,
+  GenerationHistoryAdmin,
+  GenerationHistoryAdminPagination,
 } from '@/types/ai-generation'
+
+// History API 回應結構（data 和 pagination 在同一層級）
+interface HistoryApiResponse {
+  success: boolean
+  data: GenerationHistoryAdmin[]
+  pagination: GenerationHistoryAdminPagination
+}
 
 // ============================================
 // 統計資料
@@ -47,13 +54,14 @@ export async function getTrend(days?: number) {
 /**
  * 取得生成歷史記錄（審計日誌）
  * GET /api/admin/ai/history
+ * 回應結構: { success, data: GenerationHistoryAdmin[], pagination: {...} }
  */
 export async function getHistory(params?: GenerationHistoryQueryParams) {
-  const response = await apiClient.get<ApiResponse<GenerationHistoryListResponse>>(
-    '/api/admin/ai/history',
-    { params }
-  )
-  return response.data.data!
+  const response = await apiClient.get<HistoryApiResponse>('/api/admin/ai/history', { params })
+  return {
+    data: response.data.data,
+    pagination: response.data.pagination,
+  }
 }
 
 // ============================================
@@ -67,18 +75,6 @@ export async function getHistory(params?: GenerationHistoryQueryParams) {
 export async function getUserUsage(userId: string, params?: AIUserUsageQueryParams) {
   const response = await apiClient.get<ApiResponse<AIUserUsage>>(
     `/api/admin/ai/users/${userId}/usage`,
-    { params }
-  )
-  return response.data.data!
-}
-
-/**
- * 取得所有使用者使用量列表
- * GET /api/admin/ai/users/usage
- */
-export async function getUsersUsage(params?: AIUserUsageQueryParams) {
-  const response = await apiClient.get<ApiResponse<AIUserUsageListResponse>>(
-    '/api/admin/ai/users/usage',
     { params }
   )
   return response.data.data!

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { GenerationResult, GenerationHistory as GenerationHistoryType } from '@/types/ai-generation'
+import type { GenerationResult } from '@/types/ai-generation'
 import GenerationResultComponent from './GenerationResult.vue'
 
 interface Props {
-  items: GenerationResult[] | GenerationHistoryType[]
+  items: GenerationResult[]
   layout?: 'grid' | 'list'
   emptyMessage?: string
 }
@@ -15,8 +15,8 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  (e: 'download', item: GenerationResult | GenerationHistoryType): void
-  (e: 'preview', item: GenerationResult | GenerationHistoryType): void
+  (e: 'download', item: GenerationResult): void
+  (e: 'preview', item: GenerationResult): void
 }>()
 
 const isEmpty = computed(() => props.items.length === 0)
@@ -28,17 +28,12 @@ const gridClass = computed(() => {
   return 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4'
 })
 
-function handleDownload(item: GenerationResult | GenerationHistoryType) {
+function handleDownload(item: GenerationResult) {
   emit('download', item)
 }
 
-function handlePreview(item: GenerationResult | GenerationHistoryType) {
+function handlePreview(item: GenerationResult) {
   emit('preview', item)
-}
-
-function asGenerationResult(item: GenerationResult | GenerationHistoryType): GenerationResult {
-  // GenerationHistory 包含 GenerationResult 的所有欄位
-  return item as GenerationResult
 }
 </script>
 
@@ -53,7 +48,7 @@ function asGenerationResult(item: GenerationResult | GenerationHistoryType): Gen
       <GenerationResultComponent
         v-for="(item, index) in items"
         :key="item.historyId || index"
-        :result="asGenerationResult(item)"
+        :result="item"
         :show-details="layout === 'grid'"
         @download="handleDownload(item)"
         @preview="handlePreview(item)"

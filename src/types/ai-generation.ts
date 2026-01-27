@@ -143,23 +143,25 @@ export interface GenerationResult {
   generatedAt: string
 }
 
-// 生成歷史（管理員查詢用，包含更多欄位）
-export interface GenerationHistory {
-  historyId: string
-  userId: string
+// 生成歷史（管理員查詢用，對應 OpenAPI GenerationHistoryItem）
+export interface GenerationHistoryAdmin {
+  id: string
   sessionId: string
-  model: AIModel
+  userId: string
   prompt: string
-  success: boolean
-  imageUrl?: string
-  text?: string
-  inputTokens?: number
-  outputTokens?: number
-  status?: GenerationStatus
-  errorMessage?: string
-  characterId?: string
-  characterName?: string
-  generatedAt: string
+  generatedImageUrl: string | null
+  inputTokens: number
+  outputTokens: number
+  estimatedCost: number
+  status: GenerationStatus
+  errorMessage: string | null
+  createdAt: string
+  user: {
+    id: string
+    name: string
+    email: string
+    avatar?: string
+  }
 }
 
 // 生成歷史查詢參數
@@ -167,21 +169,18 @@ export interface GenerationHistoryQueryParams {
   page?: number
   limit?: number
   status?: GenerationStatus
-  model?: AIModel
+  sessionId?: string
   startDate?: string
   endDate?: string
   userId?: string
 }
 
-// 生成歷史列表回應
-export interface GenerationHistoryListResponse {
-  history: GenerationHistory[]
-  pagination: {
-    currentPage: number
-    totalPages: number
-    totalCount: number
-    limit: number
-  }
+// 生成歷史列表回應（對應 OpenAPI /api/admin/ai/history 回應）
+export interface GenerationHistoryAdminPagination {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
 }
 
 // ============================================
@@ -262,19 +261,33 @@ export interface ReferenceImageInput {
 }
 
 // ============================================
-// 管理員統計相關
+// 管理員統計相關（對應 OpenAPI ai-admin.json）
 // ============================================
 
-// AI 使用統計
+// AI 使用統計（對應 OpenAPI AIStatistics）
 export interface AIStatistics {
+  period: {
+    startDate: string | null
+    endDate: string | null
+  }
   totalGenerations: number
-  totalTokensUsed: number
-  estimatedCost: number
-  activeUsers: number
-  successRate: number
-  filteredRate: number
-  periodStart: string
-  periodEnd: string
+  totalUsers: number
+  totalSessions: number
+  totalInputTokens: number
+  totalOutputTokens: number
+  totalTokens: number
+  totalCost: number
+  characters: {
+    total: number
+    public: number
+    private: number
+  }
+  activeSessions: number
+  today: {
+    generations: number
+    users: number
+    cost: number
+  }
 }
 
 // 統計查詢參數
@@ -283,60 +296,58 @@ export interface AIStatisticsQueryParams {
   endDate?: string
 }
 
-// 使用趨勢數據
+// 使用趨勢數據（對應 OpenAPI /api/admin/ai/trend 回應）
 export interface AIUsageTrend {
   date: string
   generations: number
-  tokensUsed: number
-  uniqueUsers: number
-  successCount: number
-  failedCount: number
-  filteredCount: number
+  inputTokens: number
+  outputTokens: number
+  cost: number
+  users: number
 }
 
-// 使用者使用量
+// 使用者使用量（對應 OpenAPI /api/admin/ai/users/{userId}/usage 回應）
 export interface AIUserUsage {
   userId: string
-  userName: string
-  userEmail: string
+  period: {
+    startDate: string | null
+    endDate: string | null
+  }
   totalGenerations: number
-  totalTokensUsed: number
-  estimatedCost: number
-  lastGeneratedAt: string
+  totalSessions: number
+  totalTokens: number
+  totalCost: number
+  statusBreakdown: {
+    success: number
+    failed: number
+    filtered: number
+  }
 }
 
 // 使用者使用量查詢參數
 export interface AIUserUsageQueryParams {
-  page?: number
-  limit?: number
   startDate?: string
   endDate?: string
 }
 
-// 使用者使用量列表回應
-export interface AIUserUsageListResponse {
-  users: AIUserUsage[]
-  pagination: {
-    currentPage: number
-    totalPages: number
-    totalCount: number
-    limit: number
-  }
-}
-
-// 排行榜項目
+// 排行榜項目（對應 OpenAPI /api/admin/ai/leaderboard 回應）
 export interface AILeaderboardItem {
   rank: number
-  userId: string
-  userName: string
-  totalGenerations: number
-  totalTokensUsed: number
+  user: {
+    id: string
+    name: string
+    email: string
+    avatar?: string
+  }
+  generations: number
+  inputTokens: number
+  outputTokens: number
+  cost: number
 }
 
 // 排行榜查詢參數
 export interface AILeaderboardQueryParams {
   limit?: number
-  sortBy?: 'generations' | 'tokens'
   startDate?: string
   endDate?: string
 }
