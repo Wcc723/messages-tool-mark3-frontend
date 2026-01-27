@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useAiGenerationStore } from '@/stores/aiGeneration'
 import { useAiCharacterStore } from '@/stores/aiCharacter'
@@ -8,7 +8,16 @@ import ConnectionStatus from '@/components/ai/ConnectionStatus.vue'
 import PromptInput from '@/components/ai/PromptInput.vue'
 import SessionInfo from '@/components/ai/SessionInfo.vue'
 import GenerationHistory from '@/components/ai/GenerationHistory.vue'
-import type { AIModel, SessionSettings, GenerationResult } from '@/types/ai-generation'
+import SessionSelectModal from '@/components/ai/SessionSelectModal.vue'
+import { aiSessionsApi } from '@/services/api'
+import type {
+  AIModel,
+  SessionSettings,
+  GenerationResult,
+  SessionItem,
+  ReferenceImage,
+  ObjectImage,
+} from '@/types/ai-generation'
 
 const aiGenerationStore = useAiGenerationStore()
 const aiCharacterStore = useAiCharacterStore()
@@ -29,11 +38,15 @@ const { characters } = storeToRefs(aiCharacterStore)
 // UI 狀態
 const prompt = ref('')
 const selectedModel = ref<AIModel>('nano-banana')
+const previewImage = ref<GenerationResult | null>(null)
+const showSessionSelectModal = ref(false)
+
+// 生成設定（每次生成時可調整）
 const selectedCharacterId = ref<string | undefined>(undefined)
+const selectedReferenceImage = ref<{ url: string; description?: string } | null>(null)
 const aspectRatio = ref<SessionSettings['aspectRatio']>('1:1')
 const imageSize = ref<SessionSettings['imageSize']>('1K')
-const showSettings = ref(false)
-const previewImage = ref<GenerationResult | null>(null)
+const showGenerationSettings = ref(false)
 
 // Session 剩餘時間
 const expiresIn = ref<string | null>(null)
@@ -54,6 +67,22 @@ const imageSizeOptions: { value: SessionSettings['imageSize']; label: string }[]
   { value: '1K', label: '1K (標準)' },
   { value: '2K', label: '2K (高畫質)' },
 ]
+
+// 選中的角色
+const selectedCharacter = computed(() => {
+  if (!selectedCharacterId.value) return null
+  return characters.value.find((c) => c.id === selectedCharacterId.value) ?? null
+})
+
+// 選中角色的所有參考圖片（合併角色圖片和物件圖片）
+const availableReferenceImages = computed(() => {
+  if (!selectedCharacter.value?.referenceImages) return []
+  const { images = [], objectImages = [] } = selectedCharacter.value.referenceImages
+  return [
+    ...images.map((img: ReferenceImage) => ({ ...img, type: 'character' as const })),
+    ...objectImages.map((img: ObjectImage) => ({ ...img, type: 'object' as const, description: img.name })),
+  ]
+})
 
 // 計算剩餘時間
 function updateExpiresIn() {
@@ -94,13 +123,9 @@ function handleReconnect() {
   }
 }
 
-// 開始 Session
+// 開始 Session（只傳模型，設定在生成時調整）
 function handleStartSession() {
-  const settings: SessionSettings = {
-    aspectRatio: aspectRatio.value,
-    imageSize: imageSize.value,
-  }
-  aiGenerationStore.startSession(selectedModel.value, selectedCharacterId.value, settings)
+  aiGenerationStore.startSession(selectedModel.value)
 }
 
 // 結束 Session
@@ -108,10 +133,51 @@ function handleEndSession() {
   aiGenerationStore.endSession()
 }
 
+// 處理 Session 選擇（從彈窗選擇恢復的對話）
+async function handleSessionSelect(session: SessionItem) {
+  showSessionSelectModal.value = false
+
+  if (session.status === 'active') {
+    // Active Session：直接恢復
+    aiGenerationStore.resumeSession(session.id)
+  } else {
+    // Completed Session：取得歷史後建立新 Session
+    try {
+      const detail = await aiSessionsApi.getSessionDetail(session.id)
+
+      // 1. 載入歷史對話到 UI
+      aiGenerationStore.loadHistoryFromSession(detail.data.history)
+
+      // 2. 使用相同設定建立新 Session
+      aiGenerationStore.startSession(
+        session.model,
+        session.characterId ?? undefined,
+        session.settings
+      )
+    } catch (err) {
+      console.error('恢復 Session 失敗:', err)
+    }
+  }
+}
+
 // 生成圖片
 function handleGenerate() {
   if (prompt.value.trim()) {
-    aiGenerationStore.generate(prompt.value.trim())
+    // 準備參考圖片（如果有選擇）
+    const referenceImage = selectedReferenceImage.value
+      ? {
+          url: selectedReferenceImage.value.url,
+          description: selectedReferenceImage.value.description,
+        }
+      : undefined
+
+    // 準備設定
+    const settings: SessionSettings = {
+      aspectRatio: aspectRatio.value,
+      imageSize: imageSize.value,
+    }
+
+    aiGenerationStore.generate(prompt.value.trim(), referenceImage, settings)
     prompt.value = ''
   }
 }
@@ -237,81 +303,6 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <!-- 角色選擇 -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                選擇角色 (選填)
-              </label>
-              <select
-                v-model="selectedCharacterId"
-                class="w-full border rounded-lg px-3 py-2"
-              >
-                <option :value="undefined">不使用角色</option>
-                <option
-                  v-for="character in characters"
-                  :key="character.id"
-                  :value="character.id"
-                >
-                  {{ character.name }}
-                </option>
-              </select>
-            </div>
-
-            <!-- 進階設定切換 -->
-            <button
-              type="button"
-              class="text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
-              @click="showSettings = !showSettings"
-            >
-              <i :class="showSettings ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
-              進階設定
-            </button>
-
-            <!-- 進階設定 -->
-            <template v-if="showSettings">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                  圖片比例
-                </label>
-                <div class="flex flex-wrap gap-2">
-                  <button
-                    v-for="ratio in aspectRatioOptions"
-                    :key="ratio"
-                    type="button"
-                    class="px-3 py-1.5 text-sm border rounded-lg transition-colors"
-                    :class="{
-                      'border-indigo-500 bg-indigo-50 text-indigo-700': aspectRatio === ratio,
-                      'hover:border-gray-300': aspectRatio !== ratio,
-                    }"
-                    @click="aspectRatio = ratio"
-                  >
-                    {{ ratio }}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                  圖片尺寸
-                </label>
-                <div class="flex gap-2">
-                  <button
-                    v-for="size in imageSizeOptions"
-                    :key="size.value"
-                    type="button"
-                    class="flex-1 px-3 py-1.5 text-sm border rounded-lg transition-colors"
-                    :class="{
-                      'border-indigo-500 bg-indigo-50 text-indigo-700': imageSize === size.value,
-                      'hover:border-gray-300': imageSize !== size.value,
-                    }"
-                    @click="imageSize = size.value"
-                  >
-                    {{ size.label }}
-                  </button>
-                </div>
-              </div>
-            </template>
-
             <!-- 開始按鈕 -->
             <button
               type="button"
@@ -325,6 +316,18 @@ onUnmounted(() => {
             >
               開始 Session
             </button>
+
+            <!-- 恢復過去對話連結 -->
+            <div class="text-center mt-3">
+              <button
+                type="button"
+                class="text-sm text-indigo-600 hover:text-indigo-800 hover:underline disabled:text-gray-400 disabled:no-underline disabled:cursor-not-allowed"
+                :disabled="!isAuthenticated"
+                @click="showSessionSelectModal = true"
+              >
+                或 恢復過去對話
+              </button>
+            </div>
           </template>
 
           <!-- Session 資訊 -->
@@ -350,6 +353,132 @@ onUnmounted(() => {
             placeholder="描述你想要生成的圖片，例如：一隻可愛的貓咪在陽光下睡覺"
             @submit="handleGenerate"
           />
+
+          <!-- 生成設定（Prompt 下方） -->
+          <div class="mt-4 pt-4 border-t space-y-4">
+            <!-- 設定切換 -->
+            <button
+              type="button"
+              class="text-sm text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+              @click="showGenerationSettings = !showGenerationSettings"
+            >
+              <i :class="showGenerationSettings ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+              生成設定
+              <span class="text-gray-400 ml-1">
+                ({{ aspectRatio }}, {{ imageSize }}{{ selectedCharacter ? `, ${selectedCharacter.name}` : '' }})
+              </span>
+            </button>
+
+            <template v-if="showGenerationSettings">
+              <!-- 圖片比例 -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  圖片比例
+                </label>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="ratio in aspectRatioOptions"
+                    :key="ratio"
+                    type="button"
+                    class="px-3 py-1.5 text-sm border rounded-lg transition-colors"
+                    :class="{
+                      'border-indigo-500 bg-indigo-50 text-indigo-700': aspectRatio === ratio,
+                      'hover:border-gray-300': aspectRatio !== ratio,
+                    }"
+                    @click="aspectRatio = ratio"
+                  >
+                    {{ ratio }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- 圖片尺寸 -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  圖片尺寸
+                </label>
+                <div class="flex gap-2">
+                  <button
+                    v-for="size in imageSizeOptions"
+                    :key="size.value"
+                    type="button"
+                    class="px-3 py-1.5 text-sm border rounded-lg transition-colors"
+                    :class="{
+                      'border-indigo-500 bg-indigo-50 text-indigo-700': imageSize === size.value,
+                      'hover:border-gray-300': imageSize !== size.value,
+                    }"
+                    @click="imageSize = size.value"
+                  >
+                    {{ size.label }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- 角色選擇 -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  參考角色 (選填)
+                </label>
+                <select
+                  v-model="selectedCharacterId"
+                  class="w-full border rounded-lg px-3 py-2"
+                  @change="selectedReferenceImage = null"
+                >
+                  <option :value="undefined">不使用角色</option>
+                  <option
+                    v-for="character in characters"
+                    :key="character.id"
+                    :value="character.id"
+                  >
+                    {{ character.name }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- 參考圖片選擇（當選擇角色後顯示） -->
+              <div v-if="selectedCharacter && availableReferenceImages.length > 0">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  參考圖片 (選填)
+                </label>
+                <div class="grid grid-cols-4 gap-2">
+                  <!-- 不使用圖片選項 -->
+                  <button
+                    type="button"
+                    class="aspect-square border-2 rounded-lg flex items-center justify-center text-gray-400 hover:border-gray-300 transition-colors"
+                    :class="{
+                      'border-indigo-500 bg-indigo-50': !selectedReferenceImage,
+                      'border-dashed': selectedReferenceImage,
+                    }"
+                    @click="selectedReferenceImage = null"
+                  >
+                    <i class="bi-x-lg text-lg"></i>
+                  </button>
+                  <!-- 參考圖片列表 -->
+                  <button
+                    v-for="(img, index) in availableReferenceImages"
+                    :key="index"
+                    type="button"
+                    class="aspect-square border-2 rounded-lg overflow-hidden transition-colors"
+                    :class="{
+                      'border-indigo-500 ring-2 ring-indigo-200': selectedReferenceImage?.url === img.url,
+                      'hover:border-gray-300': selectedReferenceImage?.url !== img.url,
+                    }"
+                    :title="img.description || ''"
+                    @click="selectedReferenceImage = img"
+                  >
+                    <img
+                      :src="img.url"
+                      :alt="img.description || '參考圖片'"
+                      class="w-full h-full object-cover"
+                    />
+                  </button>
+                </div>
+                <p v-if="selectedReferenceImage" class="mt-2 text-sm text-gray-500">
+                  已選擇：{{ selectedReferenceImage.description || '參考圖片' }}
+                </p>
+              </div>
+            </template>
+          </div>
         </div>
 
         <!-- 生成歷史 -->
@@ -396,5 +525,11 @@ onUnmounted(() => {
         </div>
       </div>
     </Teleport>
+
+    <!-- Session 選擇彈窗 -->
+    <SessionSelectModal
+      v-model="showSessionSelectModal"
+      @select="handleSessionSelect"
+    />
   </div>
 </template>

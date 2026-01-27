@@ -15,6 +15,7 @@ import type {
   SessionResumedEvent,
   GeneratedEvent,
   WSError,
+  GenerationHistoryItem,
 } from '@/types/ai-generation'
 
 export const useAiGenerationStore = defineStore('aiGeneration', () => {
@@ -154,8 +155,15 @@ export const useAiGenerationStore = defineStore('aiGeneration', () => {
 
   /**
    * 發送生成請求
+   * @param prompt - 生成提示詞
+   * @param referenceImage - 即時參考圖片（選填）
+   * @param settings - 覆蓋 Session 預設設定（選填）
    */
-  function generate(prompt: string, referenceImage?: { url: string; description?: string }) {
+  function generate(
+    prompt: string,
+    referenceImage?: { url: string; description?: string },
+    settings?: SessionSettings
+  ) {
     if (!currentSession.value) {
       error.value = '尚未建立 Session'
       return
@@ -163,7 +171,7 @@ export const useAiGenerationStore = defineStore('aiGeneration', () => {
 
     error.value = null
     isGenerating.value = true
-    socket.value.generate(currentSession.value.id, prompt, referenceImage)
+    socket.value.generate(currentSession.value.id, prompt, referenceImage, settings)
   }
 
   // ============================================
@@ -230,6 +238,7 @@ export const useAiGenerationStore = defineStore('aiGeneration', () => {
       imageUrl: result.imageUrl,
       text: result.text,
       prompt: result.prompt,
+      settings: result.settings,
       inputTokens: result.inputTokens,
       outputTokens: result.outputTokens,
       status: result.status,
@@ -291,6 +300,26 @@ export const useAiGenerationStore = defineStore('aiGeneration', () => {
     lastError.value = null
   }
 
+  /**
+   * 從 Session 詳情載入歷史對話記錄
+   * 用於恢復 completed Session 時顯示既有對話
+   */
+  function loadHistoryFromSession(history: GenerationHistoryItem[]) {
+    generationHistory.value = history.map((item) => ({
+      sessionId: item.sessionId,
+      success: item.status === 'success',
+      historyId: item.id,
+      imageUrl: item.generatedImageUrl ?? undefined,
+      text: item.responseText ?? undefined,
+      prompt: item.prompt,
+      inputTokens: item.inputTokens,
+      outputTokens: item.outputTokens,
+      status: item.status,
+      errorMessage: item.errorMessage ?? undefined,
+      generatedAt: item.createdAt,
+    }))
+  }
+
   return {
     // State
     connectionState,
@@ -315,5 +344,6 @@ export const useAiGenerationStore = defineStore('aiGeneration', () => {
     generate,
     clearError,
     reset,
+    loadHistoryFromSession,
   }
 })

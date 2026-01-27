@@ -136,6 +136,7 @@ export interface GenerationResult {
   imageUrl?: string
   text?: string
   prompt: string
+  settings?: SessionSettings // 本次實際使用的設定
   inputTokens?: number
   outputTokens?: number
   status?: GenerationStatus
@@ -241,6 +242,7 @@ export interface GeneratedEvent {
   imageUrl?: string
   text?: string
   prompt: string
+  settings?: SessionSettings // 本次實際使用的設定
   inputTokens?: number
   outputTokens?: number
   status?: GenerationStatus
@@ -350,4 +352,107 @@ export interface AILeaderboardQueryParams {
   limit?: number
   startDate?: string
   endDate?: string
+}
+
+// ============================================
+// REST API 專用型別（Session 查詢）
+// ============================================
+
+// 通用分頁結構
+export interface Pagination {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
+
+// 通用分頁回應
+export interface PaginatedResponse<T> {
+  success: boolean
+  data: T[]
+  pagination: Pagination
+}
+
+// Session 查詢參數
+export interface SessionQueryParams {
+  userId?: string
+  status?: SessionStatus
+  characterId?: string
+  page?: number
+  limit?: number
+}
+
+// Session 列表項目（對應 OpenAPI SessionItem）
+export interface SessionItem {
+  id: string
+  userId: string
+  model: AIModel
+  status: SessionStatus
+  settings: SessionSettings
+  characterId: string | null
+  character: Character | null
+  user: {
+    id: string
+    displayName: string
+    email: string
+  }
+  generationCount: number
+  totalTokens: number
+  createdAt: string
+  expiresAt: string
+}
+
+// Session 統計資訊
+export interface SessionStatistics {
+  generationCount: number
+  successCount: number
+  failedCount: number
+  totalInputTokens: number
+  totalOutputTokens: number
+  totalCost: number
+}
+
+// Session 詳情（含對話歷史）
+export interface SessionDetail {
+  id: string
+  userId: string
+  model: AIModel
+  status: SessionStatus
+  settings: SessionSettings
+  character: Character | null
+  user: {
+    id: string
+    displayName: string
+    email: string
+  }
+  statistics: SessionStatistics
+  history: GenerationHistoryItem[]
+  createdAt: string
+  expiresAt: string
+}
+
+// 生成歷史列表項目（REST API 用，對應 OpenAPI GenerationHistoryItem）
+export interface GenerationHistoryItem {
+  id: string
+  sessionId: string
+  userId: string
+  prompt: string
+  responseText: string | null
+  generatedImageUrl: string | null
+  inputTokens: number
+  outputTokens: number
+  estimatedCost: number
+  status: GenerationStatus
+  errorMessage: string | null
+  metadata: Record<string, unknown>
+  createdAt: string
+  user: {
+    id: string
+    displayName: string
+    email: string
+  }
+  session?: {
+    id: string
+    model: AIModel
+  }
 }

@@ -292,8 +292,17 @@ export class ImageGenerationSocket {
 
   /**
    * 發送生成請求（對應 AsyncAPI GeneratePayload）
+   * @param sessionId - Session ID
+   * @param prompt - 生成提示詞
+   * @param referenceImage - 即時參考圖片（選填）
+   * @param settings - 覆蓋 Session 預設設定（選填）
    */
-  generate(sessionId: string, prompt: string, referenceImage?: ReferenceImageInput): void {
+  generate(
+    sessionId: string,
+    prompt: string,
+    referenceImage?: ReferenceImageInput,
+    settings?: SessionSettings
+  ): void {
     if (!this.isAuthenticated()) {
       console.error('[ImageGenerationSocket] Not authenticated')
       this.eventHandlers.onError?.({
@@ -304,13 +313,22 @@ export class ImageGenerationSocket {
       return
     }
 
-    const payload: { sessionId: string; prompt: string; referenceImage?: ReferenceImageInput } = {
+    const payload: {
+      sessionId: string
+      prompt: string
+      referenceImage?: ReferenceImageInput
+      settings?: SessionSettings
+    } = {
       sessionId,
       prompt,
     }
 
     if (referenceImage) {
       payload.referenceImage = referenceImage
+    }
+
+    if (settings) {
+      payload.settings = settings
     }
 
     this.socket?.emit('generate', payload)
