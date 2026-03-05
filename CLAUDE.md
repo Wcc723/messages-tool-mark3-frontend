@@ -1,135 +1,41 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Vue 3 + TypeScript 前端應用，Discord 自動化排程訊息工具（Hexschool Toolman Mark 3）。
+本專案採用 `pnpm` 作為套件管理工具，所有指令請以 `pnpm` 執行。
 
-## Project Overview
-
-This is a Vue 3 + TypeScript frontend application for a Discord automated scheduling message tool (Discord 自動化排程訊息工具). It's part of the Hexschool toolman project (Mark 3). The application allows users to manage Discord bot messages with scheduled delivery.
-
-> 本專案採用 `pnpm` 作為套件管理工具，所有指令請以 `pnpm` 執行。
-
-## Tech Stack
-
-- **Framework**: Vue 3 with Composition API
-- **Language**: TypeScript
-- **Build Tool**: Vite 7
-- **State Management**: Pinia
-- **Routing**: Vue Router 4
-- **Styling**: Tailwind CSS 4
-- **Linting**: ESLint with oxlint for performance-critical correctness checks
-- **Formatting**: Prettier
-
-## Required Environment
+## 環境需求
 
 - Node.js: ^20.19.0 || >=22.12.0
-- Package Manager: pnpm 9.9.0 (specified in package.json)
+- Package Manager: pnpm 9.9.0
 
-## Common Commands
-
-**Note: This project uses pnpm as the package manager.**
+## 常用指令
 
 ```bash
-# Installation
-pnpm install
-
-# Development
-pnpm run dev              # Start dev server with hot-reload
-
-# Building
-pnpm run build           # Type-check + build for production
-pnpm run build-only      # Build without type-checking
-pnpm run type-check      # Run TypeScript compiler check
-pnpm run preview         # Preview production build locally
-
-# Code Quality
-pnpm run lint            # Run all linters (oxlint + eslint) with auto-fix
-pnpm run lint:oxlint     # Run oxlint with auto-fix (correctness checks)
-pnpm run lint:eslint     # Run ESLint with auto-fix
-pnpm run format          # Format code with Prettier
+pnpm install              # 安裝依賴
+pnpm run dev              # 啟動開發伺服器
+pnpm run build            # Type-check + 正式建置
+pnpm run build-only       # 僅建置（不檢查型別）
+pnpm run type-check       # TypeScript 型別檢查
+pnpm run lint             # 執行所有 linter（oxlint + eslint）
+pnpm run format           # Prettier 格式化
 ```
 
-## Architecture
+## 文件索引
 
-### Path Alias
-- `@/` is aliased to `./src/` (configured in vite.config.ts:14-16)
+| 文件 | 說明 |
+|------|------|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 專案架構：目錄結構、路由、API 層、認證流程、狀態管理 |
+| [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | 開發規範：程式碼風格、元件模式、API/Store 撰寫慣例 |
+| [docs/FEATURES.md](docs/FEATURES.md) | 功能模組：認證、Discord、排程、打卡、AI 圖片生成、管理後台 |
+| [docs/DESIGN_TOKENS.md](docs/DESIGN_TOKENS.md) | 設計規範：色彩、間距、元件模式、按鈕、表單、Modal 等 |
+| [docs/plans/](docs/plans/) | 歷史計畫文件歸檔 |
 
-### Directory Structure
-- `src/main.ts` - Application entry point, sets up Pinia and Router
-- `src/App.vue` - Root component
-- `src/router/` - Vue Router configuration (currently empty routes array)
-- `src/stores/` - Pinia stores using Composition API pattern
+## 關鍵慣例
 
-### State Management
-Stores use Pinia with the Composition API pattern (setup function style). Example in `src/stores/counter.ts`:
-- Define reactive state with `ref()`
-- Define computed properties with `computed()`
-- Define actions as regular functions
-- Return all exposed properties and methods
-
-### Linting Strategy
-The project uses a two-tier linting approach:
-1. **oxlint** runs first for fast correctness checks (ignores style issues)
-2. **ESLint** runs second with Vue and TypeScript rules
-3. Both run sequentially via `npm run lint`
-
-### Code Style
-- No semicolons
-- Single quotes
-- 100 character line width
-- Vue SFC files use `<script setup lang="ts">` syntax
-
-### Styling with Tailwind CSS 4
-- Tailwind CSS 4 is integrated via `@tailwindcss/vite` plugin
-- Global styles imported in `src/main.ts` from `src/assets/main.css`
-- Uses the new `@import 'tailwindcss'` syntax (Tailwind 4 approach)
-- No separate configuration file needed - Tailwind 4 works out of the box
-- Use utility classes directly in Vue component templates
-
-## API Integration
-
-The frontend integrates with a RESTful API documented in `openapi.json`. Key API features:
-
-### Authentication
-- **JWT-based**: Uses Bearer token authentication
-- **OAuth Support**: Google OAuth integration available
-- **Token Refresh**: `/api/auth/refresh` endpoint for token renewal
-- **User Management**: Profile updates, password changes
-
-### Discord Integration
-- **Bot Validation**: Verify Discord bot connection status
-- **Guild Management**: List Discord servers the bot has joined
-- **Channel Access**: Retrieve channels from specific guilds
-- **Message Sending**: Send test and scheduled messages to Discord channels
-
-### Schedule Management
-- **Schedule Types**:
-  - `once` - Single execution at specified date/time
-  - `weekly` - Recurring weekly on specific day
-  - `monthly` - Recurring monthly on specific date
-- **Schedule Status**: `draft`, `active`, `paused`, `completed`
-- **Timezone Support**: Multiple timezones (default: Asia/Taipei)
-- **Execution Logs**: Track message delivery history with pagination
-
-### API Response Format
-All API responses follow this structure:
-```typescript
-{
-  success: boolean
-  message?: string
-  data?: T // Response payload
-}
-```
-
-### Key Data Models
-- **User**: id, email, name, role (admin/user), avatar
-- **Schedule**: title, content, scheduleType, scheduledTime, channelId, timezone, status
-- **DiscordGuild**: id, name, icon, permissions, memberCount
-- **DiscordChannel**: id, name, type, permissions
-- **ExecutionLog**: status (success/failed/pending), executedAt, message, error
-
-### Pagination
-List endpoints support pagination with query parameters:
-- `page` (default: 1)
-- `limit` (default: 10 for schedules, 20 for logs)
-- Additional filters: `status`, `search`
-- 在 @CLAUDE.md 加入說明，本專案會使用 pnpm
+- **Path Alias**: `@/` → `./src/`（vite.config.ts）
+- **程式碼風格**: 無分號、單引號、100 字元行寬
+- **Vue SFC**: `<script setup lang="ts">` 語法
+- **Tailwind CSS 4**: `@import 'tailwindcss'` 語法，無需設定檔
+- **API 回應格式**: `{ success: boolean, message?: string, data?: T }`
+- **Store 模式**: Pinia Composition API（`defineStore('name', () => { ... })`）
+- **API 模組**: 一個 domain 一個檔案，barrel export（`export * as xxxApi from './xxx'`）

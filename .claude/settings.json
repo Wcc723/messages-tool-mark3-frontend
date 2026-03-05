@@ -1,0 +1,56 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm run dev:*)",
+      "Bash(pnpm run build:*)",
+      "Bash(pnpm run build-only:*)",
+      "Bash(pnpm run type-check:*)",
+      "Bash(pnpm run lint:*)",
+      "Bash(pnpm run format:*)",
+      "Bash(pnpm run preview:*)",
+      "Bash(tree:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git branch:*)"
+    ],
+    "deny": [
+      "Bash(rm -rf:*)",
+      "Bash(pnpm publish:*)",
+      "Bash(git push --force:*)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true,
+    "filesystem": {
+      "allowWrite": [
+        ".",
+        "//tmp"
+      ],
+      "denyWrite": [
+        "//etc",
+        "//usr"
+      ],
+      "denyRead": [
+        "~/.ssh",
+        "~/.aws"
+      ]
+    },
+    "network": {
+      "allowedDomains": [
+        "registry.npmjs.org",
+        "*.npmjs.org",
+        "registry.yarnpkg.com",
+        "github.com",
+        "*.github.com",
+        "localhost",
+        "127.0.0.1"
+      ],
+      "allowLocalBinding": true
+    }
+  }
+}
