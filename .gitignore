@@ -16,6 +16,7 @@ coverage
 
 /cypress/videos/
 /cypress/screenshots/
+./claude/settings.local.json
 
 # Editor directories and files
 .vscode/*
