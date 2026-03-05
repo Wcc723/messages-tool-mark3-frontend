@@ -224,7 +224,6 @@ export const useAiGenerationStore = defineStore('aiGeneration', () => {
         ...currentSession.value,
         status: 'expired',
       }
-      error.value = 'Session 已過期，請建立新的 Session'
     }
   }
 
@@ -269,6 +268,7 @@ export const useAiGenerationStore = defineStore('aiGeneration', () => {
         if (currentSession.value) {
           currentSession.value.status = 'expired'
         }
+        error.value = null
         break
       case 'start_session_failed':
       case 'resume_session_failed':

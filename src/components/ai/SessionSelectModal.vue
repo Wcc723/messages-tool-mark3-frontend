@@ -16,6 +16,7 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void
   (e: 'select', session: SessionItem): void
+  (e: 'deleted', sessionId: string): void
 }>()
 
 // 狀態
@@ -145,6 +146,33 @@ function close() {
   emit('update:modelValue', false)
 }
 
+// 刪除 Session
+const deletingSessionId = ref<string | null>(null)
+const confirmDeleteId = ref<string | null>(null)
+
+function showDeleteConfirm(sessionId: string) {
+  confirmDeleteId.value = sessionId
+}
+
+function cancelDelete() {
+  confirmDeleteId.value = null
+}
+
+async function handleDelete(sessionId: string, keepHistory: boolean) {
+  confirmDeleteId.value = null
+  deletingSessionId.value = sessionId
+
+  try {
+    await aiSessionsApi.deleteSession(sessionId, keepHistory)
+    sessions.value = sessions.value.filter((s) => s.id !== sessionId)
+    emit('deleted', sessionId)
+  } catch (err) {
+    console.error('刪除 Session 失敗:', err)
+  } finally {
+    deletingSessionId.value = null
+  }
+}
+
 // 監聽彈窗開啟
 watch(
   () => props.modelValue,
@@ -215,58 +243,111 @@ watch(currentPage, () => {
 
           <!-- Session List -->
           <div v-else class="space-y-3">
-            <button
+            <div
               v-for="session in sessions"
               :key="session.id"
-              type="button"
-              class="w-full flex items-center gap-4 p-3 border rounded-lg hover:border-indigo-300 hover:bg-indigo-50 transition-colors text-left"
-              @click="handleSelect(session)"
+              class="border rounded-lg transition-colors"
+              :class="{ 'opacity-50': deletingSessionId === session.id }"
             >
-              <!-- 縮圖 -->
+              <!-- 正常顯示 -->
               <div
-                class="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0"
+                v-if="confirmDeleteId !== session.id"
+                class="flex items-center gap-4 p-3"
               >
-                <img
-                  v-if="session.lastImage"
-                  :src="session.lastImage"
-                  :alt="`Session ${session.id}`"
-                  class="w-full h-full object-cover"
-                />
-                <div
-                  v-else
-                  class="w-full h-full flex items-center justify-center text-gray-400"
+                <button
+                  type="button"
+                  class="flex items-center gap-4 flex-1 min-w-0 text-left hover:bg-indigo-50 -m-3 p-3 rounded-lg transition-colors"
+                  :disabled="deletingSessionId === session.id"
+                  @click="handleSelect(session)"
                 >
-                  <i class="bi-image text-2xl"></i>
-                </div>
-              </div>
-
-              <!-- 資訊 -->
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2">
-                  <span class="font-medium text-gray-900">
-                    {{ getModelDisplayName(session.model) }}
-                  </span>
-                  <span
-                    class="text-xs px-2 py-0.5 rounded-full"
-                    :class="getStatusDisplay(session.status).class"
+                  <!-- 縮圖 -->
+                  <div
+                    class="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0"
                   >
-                    {{ getStatusDisplay(session.status).text }}
-                  </span>
-                </div>
-                <p v-if="session.character" class="text-sm text-gray-600 truncate">
-                  角色：{{ session.character.name }}
-                </p>
-                <div class="flex items-center gap-3 mt-1 text-xs text-gray-500">
-                  <span>
-                    <i class="bi-images"></i>
-                    {{ session.generationCount }} 張
-                  </span>
-                  <span>{{ formatDate(session.createdAt) }}</span>
-                </div>
+                    <img
+                      v-if="session.lastImage"
+                      :src="session.lastImage"
+                      :alt="`Session ${session.id}`"
+                      class="w-full h-full object-cover"
+                    />
+                    <div
+                      v-else
+                      class="w-full h-full flex items-center justify-center text-gray-400"
+                    >
+                      <i class="bi-image text-2xl"></i>
+                    </div>
+                  </div>
+
+                  <!-- 資訊 -->
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                      <span class="font-medium text-gray-900">
+                        {{ getModelDisplayName(session.model) }}
+                      </span>
+                      <span
+                        class="text-xs px-2 py-0.5 rounded-full"
+                        :class="getStatusDisplay(session.status).class"
+                      >
+                        {{ getStatusDisplay(session.status).text }}
+                      </span>
+                    </div>
+                    <p v-if="session.character" class="text-sm text-gray-600 truncate">
+                      角色：{{ session.character.name }}
+                    </p>
+                    <div class="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                      <span>
+                        <i class="bi-images"></i>
+                        {{ session.generationCount }} 張
+                      </span>
+                      <span>{{ formatDate(session.createdAt) }}</span>
+                    </div>
+                  </div>
+
+                  <i class="bi-chevron-right text-gray-400"></i>
+                </button>
+
+                <!-- 刪除按鈕 -->
+                <button
+                  type="button"
+                  class="flex-shrink-0 p-2 text-gray-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50"
+                  title="刪除 Session"
+                  :disabled="deletingSessionId === session.id"
+                  @click.stop="showDeleteConfirm(session.id)"
+                >
+                  <i class="bi-trash"></i>
+                </button>
               </div>
 
-              <i class="bi-chevron-right text-gray-400"></i>
-            </button>
+              <!-- 刪除確認 -->
+              <div v-else class="p-3 space-y-2">
+                <p class="text-sm text-gray-700">
+                  確定要刪除此 Session？
+                </p>
+                <div class="flex gap-2">
+                  <button
+                    type="button"
+                    class="flex-1 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                    @click="handleDelete(session.id, false)"
+                  >
+                    刪除全部
+                  </button>
+                  <button
+                    type="button"
+                    class="flex-1 py-1.5 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50 rounded-lg transition-colors"
+                    @click="handleDelete(session.id, true)"
+                  >
+                    保留記錄
+                  </button>
+                  <button
+                    type="button"
+                    class="px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+                    @click="cancelDelete"
+                  >
+                    取消
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

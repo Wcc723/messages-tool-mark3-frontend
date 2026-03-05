@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useAiGenerationStore } from '@/stores/aiGeneration'
 import { useAiCharacterStore } from '@/stores/aiCharacter'
@@ -48,10 +48,6 @@ const aspectRatio = ref<SessionSettings['aspectRatio']>('1:1')
 const imageSize = ref<SessionSettings['imageSize']>('1K')
 const showGenerationSettings = ref(false)
 
-// Session 剩餘時間
-const expiresIn = ref<string | null>(null)
-const isExpiringSoon = ref(false)
-let expiresInterval: ReturnType<typeof setInterval> | null = null
 
 // 模型選項
 const modelOptions: { value: AIModel; label: string; description: string }[] = [
@@ -84,30 +80,6 @@ const availableReferenceImages = computed(() => {
   ]
 })
 
-// 計算剩餘時間
-function updateExpiresIn() {
-  if (!currentSession.value?.expiresAt) {
-    expiresIn.value = null
-    isExpiringSoon.value = false
-    return
-  }
-
-  const expiresAt = new Date(currentSession.value.expiresAt).getTime()
-  const now = Date.now()
-  const ms = Math.max(0, expiresAt - now)
-
-  const minutes = Math.floor(ms / 60000)
-  const seconds = Math.floor((ms % 60000) / 1000)
-
-  if (minutes > 0) {
-    expiresIn.value = `${minutes} 分 ${seconds} 秒`
-  } else {
-    expiresIn.value = `${seconds} 秒`
-  }
-
-  isExpiringSoon.value = ms < 5 * 60 * 1000
-}
-
 // 連線
 function handleConnect() {
   if (authStore.token) {
@@ -131,6 +103,41 @@ function handleStartSession() {
 // 結束 Session
 function handleEndSession() {
   aiGenerationStore.endSession()
+}
+
+// 重新建立 Session（過期後一鍵重啟）
+function handleRestartSession() {
+  const model = currentSession.value?.model ?? selectedModel.value
+  aiGenerationStore.endSession()
+  aiGenerationStore.startSession(model)
+}
+
+// 刪除 Session
+const isDeleting = ref(false)
+const showDeleteConfirm = ref(false)
+
+async function handleDeleteSession() {
+  const sessionId = currentSession.value?.id
+  if (!sessionId) return
+
+  showDeleteConfirm.value = true
+}
+
+async function confirmDeleteSession(keepHistory: boolean) {
+  const sessionId = currentSession.value?.id
+  if (!sessionId) return
+
+  showDeleteConfirm.value = false
+  isDeleting.value = true
+
+  try {
+    await aiSessionsApi.deleteSession(sessionId, keepHistory)
+    aiGenerationStore.endSession()
+  } catch (err) {
+    console.error('刪除 Session 失敗:', err)
+  } finally {
+    isDeleting.value = false
+  }
 }
 
 // 處理 Session 選擇（從彈窗選擇恢復的對話）
@@ -157,6 +164,13 @@ async function handleSessionSelect(session: SessionItem) {
     } catch (err) {
       console.error('恢復 Session 失敗:', err)
     }
+  }
+}
+
+// 處理 Session 被刪除（從選擇彈窗中刪除）
+function handleSessionDeleted(sessionId: string) {
+  if (currentSession.value?.id === sessionId) {
+    aiGenerationStore.endSession()
   }
 }
 
@@ -202,35 +216,12 @@ function closePreview() {
   previewImage.value = null
 }
 
-// 監聽 Session 變化
-watch(currentSession, () => {
-  if (currentSession.value) {
-    updateExpiresIn()
-    if (!expiresInterval) {
-      expiresInterval = setInterval(updateExpiresIn, 1000)
-    }
-  } else {
-    if (expiresInterval) {
-      clearInterval(expiresInterval)
-      expiresInterval = null
-    }
-    expiresIn.value = null
-    isExpiringSoon.value = false
-  }
-})
-
 onMounted(async () => {
   // 載入角色列表
   await aiCharacterStore.fetchCharacters({ limit: 50 })
 
   // 自動連線
   handleConnect()
-})
-
-onUnmounted(() => {
-  if (expiresInterval) {
-    clearInterval(expiresInterval)
-  }
 })
 </script>
 
@@ -334,9 +325,9 @@ onUnmounted(() => {
           <SessionInfo
             v-else
             :session="currentSession"
-            :expires-in="expiresIn"
-            :is-expiring-soon="isExpiringSoon"
             @end="handleEndSession"
+            @restart="handleRestartSession"
+            @delete="handleDeleteSession"
           />
         </div>
       </div>
@@ -530,6 +521,51 @@ onUnmounted(() => {
     <SessionSelectModal
       v-model="showSessionSelectModal"
       @select="handleSessionSelect"
+      @deleted="handleSessionDeleted"
     />
+
+    <!-- 刪除確認彈窗 -->
+    <Teleport to="body">
+      <div
+        v-if="showDeleteConfirm"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+        @click="showDeleteConfirm = false"
+      >
+        <div
+          class="bg-white rounded-lg shadow-xl max-w-sm w-full mx-4 p-6 space-y-4"
+          @click.stop
+        >
+          <h3 class="text-lg font-semibold text-gray-900">刪除 Session</h3>
+          <p class="text-sm text-gray-600">
+            確定要刪除此 Session 嗎？你可以選擇是否保留生成記錄。
+          </p>
+          <div class="flex flex-col gap-2">
+            <button
+              type="button"
+              :disabled="isDeleting"
+              class="w-full py-2 rounded-lg font-medium text-white bg-red-600 hover:bg-red-700 transition-colors text-sm disabled:opacity-50"
+              @click="confirmDeleteSession(false)"
+            >
+              刪除 Session 及所有記錄
+            </button>
+            <button
+              type="button"
+              :disabled="isDeleting"
+              class="w-full py-2 rounded-lg font-medium text-red-600 border border-red-200 hover:bg-red-50 transition-colors text-sm disabled:opacity-50"
+              @click="confirmDeleteSession(true)"
+            >
+              刪除 Session，保留記錄
+            </button>
+            <button
+              type="button"
+              class="w-full py-2 rounded-lg font-medium text-gray-600 hover:bg-gray-50 transition-colors text-sm"
+              @click="showDeleteConfirm = false"
+            >
+              取消
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>

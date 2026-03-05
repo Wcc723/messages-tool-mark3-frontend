@@ -4,17 +4,14 @@ import type { GenerationSession } from '@/types/ai-generation'
 
 interface Props {
   session: GenerationSession | null
-  expiresIn?: string | null
-  isExpiringSoon?: boolean
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  expiresIn: null,
-  isExpiringSoon: false,
-})
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   (e: 'end'): void
+  (e: 'restart'): void
+  (e: 'delete'): void
 }>()
 
 const modelDisplayName = computed(() => {
@@ -54,15 +51,11 @@ const statusBadge = computed(() => {
     case 'completed':
       return { text: '已完成', class: 'bg-gray-100 text-gray-700' }
     case 'expired':
-      return { text: '已過期', class: 'bg-red-100 text-red-700' }
+      return { text: '已結束', class: 'bg-amber-100 text-amber-700' }
     default:
       return null
   }
 })
-
-function handleEnd() {
-  emit('end')
-}
 </script>
 
 <template>
@@ -102,24 +95,50 @@ function handleEnd() {
       </div>
     </div>
 
-    <div
-      v-if="expiresIn"
-      class="flex items-center gap-2 text-sm"
-      :class="{ 'text-red-600': isExpiringSoon, 'text-gray-600': !isExpiringSoon }"
-    >
-      <i class="bi-clock"></i>
-      <span>剩餘時間: {{ expiresIn }}</span>
-      <span v-if="isExpiringSoon" class="text-red-500 font-medium">(即將過期)</span>
-    </div>
-
     <div class="pt-2 border-t">
-      <button
-        type="button"
-        class="text-sm text-red-600 hover:text-red-800"
-        @click="handleEnd"
-      >
-        結束 Session
-      </button>
+      <template v-if="session.status === 'active'">
+        <div class="flex items-center justify-between">
+          <button
+            type="button"
+            class="text-sm text-red-600 hover:text-red-800"
+            @click="emit('end')"
+          >
+            結束 Session
+          </button>
+          <button
+            type="button"
+            class="text-sm text-gray-400 hover:text-red-600 transition-colors"
+            title="刪除 Session"
+            @click="emit('delete')"
+          >
+            <i class="bi-trash"></i>
+          </button>
+        </div>
+      </template>
+      <template v-else-if="session.status === 'expired'">
+        <div class="space-y-2">
+          <p class="text-sm text-gray-500">
+            Session 已結束，你可以直接建立新的 Session 繼續使用。
+          </p>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              class="flex-1 py-2 rounded-lg font-medium text-white bg-indigo-600 hover:bg-indigo-700 transition-colors text-sm"
+              @click="emit('restart')"
+            >
+              建立新 Session
+            </button>
+            <button
+              type="button"
+              class="px-3 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-sm"
+              title="刪除 Session"
+              @click="emit('delete')"
+            >
+              <i class="bi-trash"></i>
+            </button>
+          </div>
+        </div>
+      </template>
     </div>
   </div>
 
