@@ -19,6 +19,12 @@ import type {
   GenerationHistoryItem,
 } from '@/types/ai-generation'
 
+interface PendingGeneration {
+  prompt: string
+  referenceImage?: { url: string; description?: string }
+  settings?: SessionSettings
+}
+
 export const useAiGenerationStore = defineStore('aiGeneration', () => {
   // ============================================
   // State
@@ -32,6 +38,7 @@ export const useAiGenerationStore = defineStore('aiGeneration', () => {
   const isGenerating = ref(false)
   const error = ref<string | null>(null)
   const lastError = ref<WSError | null>(null)
+  const pendingGeneration = ref<PendingGeneration | null>(null)
 
   // ============================================
   // Getters
@@ -62,13 +69,32 @@ export const useAiGenerationStore = defineStore('aiGeneration', () => {
 
   /**
    * 連線到 WebSocket 伺服器
+   * 如果已經連線或已認證，僅同步狀態並確保 handlers 已設定，不重複連線
    */
   function connect(token: string) {
+    // 確保事件處理器始終是最新的
+    setupEventHandlers()
+
+    // 如果 socket 已連線/已認證，同步 Store 狀態即可
+    if (socket.value.isAuthenticated()) {
+      connectionState.value = 'authenticated'
+      return
+    }
+    if (socket.value.isConnected()) {
+      connectionState.value = 'connected'
+      return
+    }
+
     error.value = null
     lastError.value = null
     connectionState.value = 'connecting'
+    socket.value.connect(token)
+  }
 
-    // 設定事件處理器
+  /**
+   * 設定 WebSocket 事件處理器
+   */
+  function setupEventHandlers() {
     socket.value.setEventHandlers({
       onConnected: () => {
         connectionState.value = 'connected'
@@ -99,8 +125,6 @@ export const useAiGenerationStore = defineStore('aiGeneration', () => {
       onGenerated: handleGenerated,
       onError: handleError,
     })
-
-    socket.value.connect(token)
   }
 
   /**
@@ -207,7 +231,13 @@ export const useAiGenerationStore = defineStore('aiGeneration', () => {
       expiresAt: session.expiresAt,
       status: 'active',
     }
-    generationHistory.value = []
+
+    // 如有 pending 生成請求，自動觸發
+    if (pendingGeneration.value) {
+      const pending = pendingGeneration.value
+      pendingGeneration.value = null
+      generate(pending.prompt, pending.referenceImage, pending.settings)
+    }
   }
 
   function handleSessionResumed(event: SessionResumedEvent) {
@@ -248,7 +278,7 @@ export const useAiGenerationStore = defineStore('aiGeneration', () => {
   function handleSessionEnded(sessionId: string) {
     if (currentSession.value?.id === sessionId) {
       currentSession.value = null
-      generationHistory.value = []
+      // 不再自動清空歷史，由 View 層控制
     }
   }
 
@@ -305,6 +335,8 @@ export const useAiGenerationStore = defineStore('aiGeneration', () => {
         error.value = null
         break
       case 'start_session_failed':
+        pendingGeneration.value = null
+        break
       case 'resume_session_failed':
       case 'update_session_failed':
       case 'generation_failed':
@@ -324,6 +356,13 @@ export const useAiGenerationStore = defineStore('aiGeneration', () => {
   function clearError() {
     error.value = null
     lastError.value = null
+  }
+
+  /**
+   * 清空生成歷史
+   */
+  function clearHistory() {
+    generationHistory.value = []
   }
 
   /**
@@ -379,7 +418,9 @@ export const useAiGenerationStore = defineStore('aiGeneration', () => {
     endSession,
     generate,
     clearError,
+    clearHistory,
     reset,
     loadHistoryFromSession,
+    pendingGeneration,
   }
 })

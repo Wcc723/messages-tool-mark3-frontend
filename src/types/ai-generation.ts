@@ -344,6 +344,20 @@ export interface ReferenceImageInput {
 }
 
 // ============================================
+// 對話式 UI 相關
+// ============================================
+
+// 對話訊息項目
+export interface ChatMessageItem {
+  id: string
+  type: 'user' | 'assistant' | 'system'
+  prompt?: string
+  result?: GenerationResult
+  systemMessage?: string
+  timestamp: string
+}
+
+// ============================================
 // 管理員統計相關（對應 OpenAPI ai-admin.json）
 // ============================================
 
