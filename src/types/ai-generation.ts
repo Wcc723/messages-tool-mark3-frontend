@@ -103,6 +103,76 @@ export interface CharacterImageMetadata {
 }
 
 // ============================================
+// 情境相關
+// ============================================
+
+// 情境風格圖片
+export interface StyleImage {
+  url: string
+  description?: string
+}
+
+// 情境風格圖片集合
+export interface ScenarioStyleImages {
+  images: StyleImage[]
+}
+
+// 情境預設設定
+export interface ScenarioDefaultSettings {
+  aspectRatio?: '1:1' | '16:9' | '9:16' | '4:3' | '3:4'
+  imageSize?: '1K' | '2K'
+}
+
+// 情境
+export interface Scenario {
+  id: string
+  userId: string
+  name: string
+  description?: string
+  tags: string[]
+  isPublic: boolean
+  styleImages: ScenarioStyleImages | null
+  defaultSettings: ScenarioDefaultSettings | null
+  createdAt: string
+  updatedAt: string
+}
+
+// 情境建立請求
+export interface ScenarioCreateRequest {
+  name: string
+  description?: string
+  tags?: string[]
+  isPublic?: boolean
+  defaultSettings?: ScenarioDefaultSettings
+}
+
+// 情境更新請求
+export interface ScenarioUpdateRequest {
+  name?: string
+  description?: string
+  tags?: string[]
+  isPublic?: boolean
+  defaultSettings?: ScenarioDefaultSettings
+}
+
+// 情境查詢參數
+export interface ScenarioQueryParams {
+  page?: number
+  limit?: number
+  search?: string
+  tags?: string[]
+  isPublic?: boolean
+}
+
+// 情境列表分頁
+export interface ScenarioPagination {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
+
+// ============================================
 // Session 相關
 // ============================================
 
@@ -119,6 +189,8 @@ export interface GenerationSession {
   settings: SessionSettings
   characterId?: string | null
   characterName?: string | null
+  scenarioId?: string | null
+  scenarioName?: string | null
   expiresAt: string
   // 前端額外狀態
   status: SessionStatus
@@ -199,6 +271,7 @@ export interface AuthenticatedUser {
 export type WSErrorType =
   | 'start_session_failed'
   | 'resume_session_failed'
+  | 'update_session_failed'
   | 'generation_failed'
   | 'end_session_failed'
   | 'invalid_model'
@@ -219,7 +292,15 @@ export interface SessionInfo {
   settings: SessionSettings
   characterId?: string | null
   characterName?: string | null
+  scenarioId?: string | null
+  scenarioName?: string | null
   expiresAt: string
+}
+
+// Session 更新事件資料
+export interface SessionUpdatedEvent {
+  success: boolean
+  session: SessionInfo
 }
 
 // Session 建立事件資料（對應 AsyncAPI SessionCreatedPayload）
@@ -391,6 +472,8 @@ export interface SessionItem {
   settings: SessionSettings
   characterId: string | null
   character: Character | null
+  scenarioId: string | null
+  scenario: Scenario | null
   user: {
     id: string
     displayName: string
@@ -420,6 +503,7 @@ export interface SessionDetail {
   status: SessionStatus
   settings: SessionSettings
   character: Character | null
+  scenario: Scenario | null
   user: {
     id: string
     displayName: string

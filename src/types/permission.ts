@@ -81,6 +81,7 @@ export interface AIPermissions {
   canView: boolean
   canViewAll: boolean
   canManageCharacters: boolean
+  canManageScenarios: boolean
   canViewStatistics: boolean
 }
 
@@ -95,6 +96,7 @@ export interface NavigationPermissions {
   showCheckinSchedules: boolean
   showAiGenerator: boolean
   showAiCharacters: boolean
+  showAiScenarios: boolean
   showAiAdmin: boolean
 }
 

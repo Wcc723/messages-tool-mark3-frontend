@@ -93,6 +93,13 @@ const statusBadge = computed(() => {
           {{ session.characterName || session.characterId }}
         </p>
       </div>
+
+      <div v-if="session.scenarioId">
+        <span class="text-gray-500">情境</span>
+        <p class="font-medium text-gray-900">
+          {{ session.scenarioName || session.scenarioId }}
+        </p>
+      </div>
     </div>
 
     <div class="pt-2 border-t">

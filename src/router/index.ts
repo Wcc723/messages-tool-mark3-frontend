@@ -177,6 +177,33 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
+        path: 'ai/scenarios',
+        name: 'ScenarioList',
+        component: () => import('@/pages/ai/ScenarioListView.vue'),
+        meta: {
+          requiresAuth: true,
+          permissionPath: '/dashboard/ai/scenarios',
+        },
+      },
+      {
+        path: 'ai/scenarios/new',
+        name: 'ScenarioCreate',
+        component: () => import('@/pages/ai/ScenarioFormView.vue'),
+        meta: {
+          requiresAuth: true,
+          permissionPath: '/dashboard/ai/scenarios/new',
+        },
+      },
+      {
+        path: 'ai/scenarios/edit/:id',
+        name: 'ScenarioEdit',
+        component: () => import('@/pages/ai/ScenarioFormView.vue'),
+        meta: {
+          requiresAuth: true,
+          permissionPath: '/dashboard/ai/scenarios/edit/:id',
+        },
+      },
+      {
         path: 'admin/ai',
         name: 'AiAdmin',
         component: () => import('@/pages/ai/AiAdminView.vue'),

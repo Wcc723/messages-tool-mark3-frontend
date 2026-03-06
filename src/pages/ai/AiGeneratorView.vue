@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useAiGenerationStore } from '@/stores/aiGeneration'
 import { useAiCharacterStore } from '@/stores/aiCharacter'
+import { useAiScenarioStore } from '@/stores/aiScenario'
 import { useAuthStore } from '@/stores/auth'
 import ConnectionStatus from '@/components/ai/ConnectionStatus.vue'
 import PromptInput from '@/components/ai/PromptInput.vue'
@@ -21,6 +22,7 @@ import type {
 
 const aiGenerationStore = useAiGenerationStore()
 const aiCharacterStore = useAiCharacterStore()
+const aiScenarioStore = useAiScenarioStore()
 const authStore = useAuthStore()
 
 const {
@@ -34,6 +36,7 @@ const {
 } = storeToRefs(aiGenerationStore)
 
 const { characters } = storeToRefs(aiCharacterStore)
+const { scenarios } = storeToRefs(aiScenarioStore)
 
 // UI 狀態
 const prompt = ref('')
@@ -43,6 +46,7 @@ const showSessionSelectModal = ref(false)
 
 // 生成設定（每次生成時可調整）
 const selectedCharacterId = ref<string | undefined>(undefined)
+const selectedScenarioId = ref<string | undefined>(undefined)
 const selectedReferenceImage = ref<{ url: string; description?: string } | null>(null)
 const aspectRatio = ref<SessionSettings['aspectRatio']>('1:1')
 const imageSize = ref<SessionSettings['imageSize']>('1K')
@@ -70,6 +74,17 @@ const selectedCharacter = computed(() => {
   return characters.value.find((c) => c.id === selectedCharacterId.value) ?? null
 })
 
+// 選中的情境
+const selectedScenario = computed(() => {
+  if (!selectedScenarioId.value) return null
+  return scenarios.value.find((s) => s.id === selectedScenarioId.value) ?? null
+})
+
+// 選中的情境有描述時，prompt 非必要
+const isPromptOptional = computed(() => {
+  return !!selectedScenario.value?.description
+})
+
 // 選中角色的所有參考圖片（合併角色圖片和物件圖片）
 const availableReferenceImages = computed(() => {
   if (!selectedCharacter.value?.referenceImages) return []
@@ -95,9 +110,9 @@ function handleReconnect() {
   }
 }
 
-// 開始 Session（只傳模型，設定在生成時調整）
+// 開始 Session
 function handleStartSession() {
-  aiGenerationStore.startSession(selectedModel.value)
+  aiGenerationStore.startSession(selectedModel.value, undefined, undefined)
 }
 
 // 結束 Session
@@ -159,6 +174,7 @@ async function handleSessionSelect(session: SessionItem) {
       aiGenerationStore.startSession(
         session.model,
         session.characterId ?? undefined,
+        session.scenarioId ?? undefined,
         session.settings
       )
     } catch (err) {
@@ -176,24 +192,27 @@ function handleSessionDeleted(sessionId: string) {
 
 // 生成圖片
 function handleGenerate() {
-  if (prompt.value.trim()) {
-    // 準備參考圖片（如果有選擇）
-    const referenceImage = selectedReferenceImage.value
-      ? {
-          url: selectedReferenceImage.value.url,
-          description: selectedReferenceImage.value.description,
-        }
-      : undefined
+  const trimmedPrompt = prompt.value.trim()
 
-    // 準備設定
-    const settings: SessionSettings = {
-      aspectRatio: aspectRatio.value,
-      imageSize: imageSize.value,
-    }
+  // 有 prompt 或有選擇帶描述的情境時才能生成
+  if (!trimmedPrompt && !isPromptOptional.value) return
 
-    aiGenerationStore.generate(prompt.value.trim(), referenceImage, settings)
-    prompt.value = ''
+  // 準備參考圖片（如果有選擇）
+  const referenceImage = selectedReferenceImage.value
+    ? {
+        url: selectedReferenceImage.value.url,
+        description: selectedReferenceImage.value.description,
+      }
+    : undefined
+
+  // 準備設定
+  const settings: SessionSettings = {
+    aspectRatio: aspectRatio.value,
+    imageSize: imageSize.value,
   }
+
+  aiGenerationStore.generate(trimmedPrompt, referenceImage, settings)
+  prompt.value = ''
 }
 
 // 下載圖片
@@ -217,8 +236,11 @@ function closePreview() {
 }
 
 onMounted(async () => {
-  // 載入角色列表
-  await aiCharacterStore.fetchCharacters({ limit: 50 })
+  // 載入角色和情境列表
+  await Promise.all([
+    aiCharacterStore.fetchCharacters({ limit: 50 }),
+    aiScenarioStore.fetchScenarios({ limit: 50 }),
+  ])
 
   // 自動連線
   handleConnect()
@@ -341,7 +363,8 @@ onMounted(async () => {
             v-model="prompt"
             :disabled="!hasActiveSession"
             :is-generating="isGenerating"
-            placeholder="描述你想要生成的圖片，例如：一隻可愛的貓咪在陽光下睡覺"
+            :allow-empty="isPromptOptional"
+            :placeholder="isPromptOptional ? '圖片描述 (選填，已選擇情境)' : '描述你想要生成的圖片，例如：一隻可愛的貓咪在陽光下睡覺'"
             @submit="handleGenerate"
           />
 
@@ -356,7 +379,7 @@ onMounted(async () => {
               <i :class="showGenerationSettings ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
               生成設定
               <span class="text-gray-400 ml-1">
-                ({{ aspectRatio }}, {{ imageSize }}{{ selectedCharacter ? `, ${selectedCharacter.name}` : '' }})
+                ({{ aspectRatio }}, {{ imageSize }}{{ selectedCharacter ? `, ${selectedCharacter.name}` : '' }}{{ selectedScenarioId ? ', 情境' : '' }})
               </span>
             </button>
 
@@ -422,6 +445,26 @@ onMounted(async () => {
                     :value="character.id"
                   >
                     {{ character.name }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- 情境選擇 -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  參考情境 (選填)
+                </label>
+                <select
+                  v-model="selectedScenarioId"
+                  class="w-full border rounded-lg px-3 py-2"
+                >
+                  <option :value="undefined">不使用情境</option>
+                  <option
+                    v-for="scenario in scenarios"
+                    :key="scenario.id"
+                    :value="scenario.id"
+                  >
+                    {{ scenario.name }}
                   </option>
                 </select>
               </div>

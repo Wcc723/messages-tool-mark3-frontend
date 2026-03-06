@@ -78,8 +78,8 @@ export function useImageGeneration() {
   /**
    * 開始新 Session
    */
-  function startNewSession(model: AIModel, characterId?: string, settings?: SessionSettings) {
-    aiGenerationStore.startSession(model, characterId, settings)
+  function startNewSession(model: AIModel, characterId?: string, scenarioId?: string, settings?: SessionSettings) {
+    aiGenerationStore.startSession(model, characterId, scenarioId, settings)
   }
 
   /**

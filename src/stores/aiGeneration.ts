@@ -13,6 +13,7 @@ import type {
   AuthenticatedUser,
   SessionCreatedEvent,
   SessionResumedEvent,
+  SessionUpdatedEvent,
   GeneratedEvent,
   WSError,
   GenerationHistoryItem,
@@ -89,6 +90,7 @@ export const useAiGenerationStore = defineStore('aiGeneration', () => {
       },
       onSessionCreated: handleSessionCreated,
       onSessionResumed: handleSessionResumed,
+      onSessionUpdated: handleSessionUpdated,
       onSessionEnded: handleSessionEnded,
       onSessionExpired: handleSessionExpired,
       onGenerating: () => {
@@ -127,9 +129,21 @@ export const useAiGenerationStore = defineStore('aiGeneration', () => {
   /**
    * 開始新 Session
    */
-  function startSession(model: AIModel, characterId?: string, settings?: SessionSettings) {
+  function startSession(model: AIModel, characterId?: string, scenarioId?: string, settings?: SessionSettings) {
     error.value = null
-    socket.value.startSession(model, characterId, settings)
+    socket.value.startSession(model, characterId, scenarioId, settings)
+  }
+
+  /**
+   * 更新 Session
+   */
+  function updateSession(data: { characterId?: string | null; scenarioId?: string | null; settings?: SessionSettings }) {
+    if (!currentSession.value) {
+      error.value = '尚未建立 Session'
+      return
+    }
+    error.value = null
+    socket.value.updateSession(currentSession.value.id, data)
   }
 
   /**
@@ -188,6 +202,8 @@ export const useAiGenerationStore = defineStore('aiGeneration', () => {
       settings: session.settings,
       characterId: session.characterId,
       characterName: session.characterName,
+      scenarioId: session.scenarioId,
+      scenarioName: session.scenarioName,
       expiresAt: session.expiresAt,
       status: 'active',
     }
@@ -204,11 +220,29 @@ export const useAiGenerationStore = defineStore('aiGeneration', () => {
       settings: session.settings,
       characterId: session.characterId,
       characterName: session.characterName,
+      scenarioId: session.scenarioId,
+      scenarioName: session.scenarioName,
       expiresAt: session.expiresAt,
       status: 'active',
     }
     // 恢復時不載入歷史，因為 AsyncAPI 的 SessionResumedPayload 沒有 history
     generationHistory.value = []
+  }
+
+  function handleSessionUpdated(event: SessionUpdatedEvent) {
+    if (!event.success) return
+
+    const session = event.session
+    if (currentSession.value?.id === session.id) {
+      currentSession.value = {
+        ...currentSession.value,
+        settings: session.settings,
+        characterId: session.characterId,
+        characterName: session.characterName,
+        scenarioId: session.scenarioId,
+        scenarioName: session.scenarioName,
+      }
+    }
   }
 
   function handleSessionEnded(sessionId: string) {
@@ -272,6 +306,7 @@ export const useAiGenerationStore = defineStore('aiGeneration', () => {
         break
       case 'start_session_failed':
       case 'resume_session_failed':
+      case 'update_session_failed':
       case 'generation_failed':
       case 'invalid_model':
         // 保持錯誤訊息顯示
@@ -339,6 +374,7 @@ export const useAiGenerationStore = defineStore('aiGeneration', () => {
     disconnect,
     reconnect,
     startSession,
+    updateSession,
     resumeSession,
     endSession,
     generate,

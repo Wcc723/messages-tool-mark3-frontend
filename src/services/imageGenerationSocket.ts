@@ -6,6 +6,7 @@ import type {
   AuthenticatedUser,
   SessionCreatedEvent,
   SessionResumedEvent,
+  SessionUpdatedEvent,
   GeneratingEvent,
   GeneratedEvent,
   WSError,
@@ -27,6 +28,7 @@ export interface ImageGenerationSocketEvents {
   onAuthFailed?: (error: WSError) => void
   onSessionCreated?: (session: SessionCreatedEvent) => void
   onSessionResumed?: (session: SessionResumedEvent) => void
+  onSessionUpdated?: (session: SessionUpdatedEvent) => void
   onSessionEnded?: (sessionId: string) => void
   onSessionExpired?: (sessionId: string) => void
   onGenerating?: (data: GeneratingEvent) => void
@@ -190,6 +192,12 @@ export class ImageGenerationSocket {
       this.eventHandlers.onSessionResumed?.(session)
     })
 
+    // Session 更新成功
+    this.socket.on('session_updated', (session: SessionUpdatedEvent) => {
+      console.log('[ImageGenerationSocket] Session updated:', session)
+      this.eventHandlers.onSessionUpdated?.(session)
+    })
+
     // Session 結束（對應 AsyncAPI SessionEndedPayload）
     this.socket.on('session_ended', (payload: { success: boolean; sessionId: string }) => {
       console.log('[ImageGenerationSocket] Session ended:', payload)
@@ -239,7 +247,7 @@ export class ImageGenerationSocket {
   /**
    * 開始新 Session（對應 AsyncAPI StartSessionPayload）
    */
-  startSession(model: AIModel, characterId?: string, settings?: SessionSettings): void {
+  startSession(model: AIModel, characterId?: string, scenarioId?: string, settings?: SessionSettings): void {
     if (!this.isAuthenticated()) {
       console.error('[ImageGenerationSocket] Not authenticated')
       this.eventHandlers.onError?.({
@@ -253,7 +261,28 @@ export class ImageGenerationSocket {
     this.socket?.emit('start_session', {
       model,
       characterId,
+      scenarioId,
       settings: settings || {},
+    })
+  }
+
+  /**
+   * 更新 Session（對應 AsyncAPI UpdateSessionPayload）
+   */
+  updateSession(sessionId: string, data: { characterId?: string | null; scenarioId?: string | null; settings?: SessionSettings }): void {
+    if (!this.isAuthenticated()) {
+      console.error('[ImageGenerationSocket] Not authenticated')
+      this.eventHandlers.onError?.({
+        type: 'permission_denied',
+        message: '尚未認證，請重新連線',
+        timestamp: new Date().toISOString(),
+      })
+      return
+    }
+
+    this.socket?.emit('update_session', {
+      sessionId,
+      ...data,
     })
   }
 

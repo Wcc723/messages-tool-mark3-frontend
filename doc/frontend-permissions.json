@@ -53,6 +53,7 @@
           "canView": true,
           "canViewAll": true,
           "canManageCharacters": true,
+          "canManageScenarios": true,
           "canViewStatistics": true
         }
       },
@@ -67,6 +68,7 @@
         "showCheckinSchedules": true,
         "showAiGenerator": true,
         "showAiCharacters": true,
+        "showAiScenarios": true,
         "showAiAdmin": true
       },
       "routes": {
@@ -86,6 +88,9 @@
           "/dashboard/ai/characters",
           "/dashboard/ai/characters/new",
           "/dashboard/ai/characters/edit/:id",
+          "/dashboard/ai/scenarios",
+          "/dashboard/ai/scenarios/new",
+          "/dashboard/ai/scenarios/edit/:id",
           "/dashboard/admin/ai"
         ]
       }
@@ -143,6 +148,7 @@
           "canView": true,
           "canViewAll": true,
           "canManageCharacters": true,
+          "canManageScenarios": true,
           "canViewStatistics": true
         }
       },
@@ -157,6 +163,7 @@
         "showCheckinSchedules": true,
         "showAiGenerator": true,
         "showAiCharacters": true,
+        "showAiScenarios": true,
         "showAiAdmin": true
       },
       "routes": {
@@ -176,6 +183,9 @@
           "/dashboard/ai/characters",
           "/dashboard/ai/characters/new",
           "/dashboard/ai/characters/edit/:id",
+          "/dashboard/ai/scenarios",
+          "/dashboard/ai/scenarios/new",
+          "/dashboard/ai/scenarios/edit/:id",
           "/dashboard/admin/ai"
         ]
       }
@@ -233,6 +243,7 @@
           "canView": true,
           "canViewAll": false,
           "canManageCharacters": true,
+          "canManageScenarios": true,
           "canViewStatistics": false
         }
       },
@@ -247,6 +258,7 @@
         "showCheckinSchedules": true,
         "showAiGenerator": true,
         "showAiCharacters": true,
+        "showAiScenarios": true,
         "showAiAdmin": false
       },
       "routes": {
@@ -264,7 +276,10 @@
           "/dashboard/ai/generator",
           "/dashboard/ai/characters",
           "/dashboard/ai/characters/new",
-          "/dashboard/ai/characters/edit/:id"
+          "/dashboard/ai/characters/edit/:id",
+          "/dashboard/ai/scenarios",
+          "/dashboard/ai/scenarios/new",
+          "/dashboard/ai/scenarios/edit/:id"
         ]
       }
     },
@@ -322,6 +337,7 @@
           "canView": false,
           "canViewAll": false,
           "canManageCharacters": false,
+          "canManageScenarios": false,
           "canViewStatistics": false
         }
       },
@@ -336,6 +352,7 @@
         "showCheckinSchedules": false,
         "showAiGenerator": false,
         "showAiCharacters": false,
+        "showAiScenarios": false,
         "showAiAdmin": false
       },
       "routes": {

@@ -5,6 +5,7 @@ interface Props {
   modelValue: string
   disabled?: boolean
   isGenerating?: boolean
+  allowEmpty?: boolean
   maxLength?: number
   placeholder?: string
 }
@@ -12,6 +13,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   disabled: false,
   isGenerating: false,
+  allowEmpty: false,
   maxLength: 2000,
   placeholder: '描述你想要生成的圖片...',
 })
@@ -26,12 +28,8 @@ const isFocused = ref(false)
 const charCount = computed(() => props.modelValue.length)
 const isOverLimit = computed(() => charCount.value > props.maxLength)
 const canSubmit = computed(() => {
-  return (
-    props.modelValue.trim().length > 0 &&
-    !isOverLimit.value &&
-    !props.disabled &&
-    !props.isGenerating
-  )
+  const hasContent = props.modelValue.trim().length > 0 || props.allowEmpty
+  return hasContent && !isOverLimit.value && !props.disabled && !props.isGenerating
 })
 
 function handleInput(event: Event) {

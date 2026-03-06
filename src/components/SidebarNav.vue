@@ -76,6 +76,12 @@ const allNavGroups: NavGroup[] = [
         icon: 'bi-person-badge',
         permissionKey: 'showAiCharacters',
       },
+      {
+        name: '情境管理',
+        path: '/dashboard/ai/scenarios',
+        icon: 'bi-palette',
+        permissionKey: 'showAiScenarios',
+      },
     ],
   },
   {
