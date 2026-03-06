@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useAiGenerationStore } from '@/stores/aiGeneration'
 import { useAiCharacterStore } from '@/stores/aiCharacter'
@@ -95,6 +95,24 @@ const availableReferenceImages = computed(() => {
   ]
 })
 
+// 當 Session 進行中切換情境時，通知後端更新
+watch(selectedScenarioId, (newId) => {
+  if (hasActiveSession.value) {
+    aiGenerationStore.updateSession({
+      scenarioId: newId ?? null,
+    })
+  }
+})
+
+// 當 Session 進行中切換角色時，通知後端更新
+watch(selectedCharacterId, (newId) => {
+  if (hasActiveSession.value) {
+    aiGenerationStore.updateSession({
+      characterId: newId ?? null,
+    })
+  }
+})
+
 // 連線
 function handleConnect() {
   if (authStore.token) {
@@ -112,7 +130,11 @@ function handleReconnect() {
 
 // 開始 Session
 function handleStartSession() {
-  aiGenerationStore.startSession(selectedModel.value, undefined, undefined)
+  aiGenerationStore.startSession(
+    selectedModel.value,
+    selectedCharacterId.value,
+    selectedScenarioId.value,
+  )
 }
 
 // 結束 Session
