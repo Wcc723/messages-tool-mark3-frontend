@@ -390,7 +390,7 @@ export const useAiGenerationStore = defineStore('aiGeneration', () => {
       status: item.status,
       errorMessage: item.errorMessage ?? undefined,
       generatedAt: item.createdAt,
-    }))
+    })).reverse()
   }
 
   return {

@@ -182,14 +182,23 @@ async function handleSessionSelect(session: SessionItem) {
     aiGenerationStore.loadHistoryFromSession(detail.data.history)
 
     if (session.status === 'active') {
+      // active / expired 可恢復，透過 WebSocket resume
       aiGenerationStore.resumeSession(session.id)
     } else {
-      aiGenerationStore.startSession(
-        session.model,
-        session.characterId ?? undefined,
-        session.scenarioId ?? undefined,
-        session.settings,
-      )
+      // completed session 僅檢視歷史，不建立新 session
+      // 結束目前的 active session（如有）
+      if (hasActiveSession.value) {
+        aiGenerationStore.endSession()
+      }
+    }
+
+    // 帶入該 session 的設定，方便使用者以相同設定繼續生成
+    selectedModel.value = session.model
+    selectedCharacterId.value = session.characterId ?? undefined
+    selectedScenarioId.value = session.scenarioId ?? undefined
+    if (session.settings) {
+      aspectRatio.value = session.settings.aspectRatio ?? '1:1'
+      imageSize.value = session.settings.imageSize ?? '1K'
     }
   } catch (err) {
     console.error('恢復 Session 失敗:', err)
