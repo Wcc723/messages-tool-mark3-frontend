@@ -65,7 +65,7 @@ export async function uploadScenarioImage(id: string, file: File, description?: 
     formData.append('description', description)
   }
 
-  const response = await apiClient.post<ApiResponse<Scenario>>(
+  const response = await apiClient.post<ApiResponse<{ url: string; scenario: Scenario }>>(
     `/api/ai/scenarios/${id}/images`,
     formData,
     {
@@ -74,7 +74,7 @@ export async function uploadScenarioImage(id: string, file: File, description?: 
       },
     }
   )
-  return response.data.data!
+  return response.data.data!.scenario
 }
 
 export async function deleteScenarioImage(id: string, imageIndex: number) {

@@ -119,13 +119,18 @@ onMounted(async () => {
   <div class="space-y-6">
     <!-- 頁面標題 -->
     <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900">情境管理</h1>
-        <p class="mt-1 text-gray-500">管理你的 AI 生成情境風格</p>
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center">
+          <i class="bi bi-palette text-gray-600 text-lg"></i>
+        </div>
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">情境管理</h1>
+          <p class="text-gray-600">管理你的 AI 生成情境風格</p>
+        </div>
       </div>
       <button
         type="button"
-        class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+        class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition cursor-pointer disabled:bg-indigo-400 disabled:cursor-not-allowed flex items-center gap-2"
         @click="handleCreate"
       >
         <i class="bi-plus-lg"></i>
@@ -152,7 +157,7 @@ onMounted(async () => {
     </div>
 
     <!-- 搜尋與篩選 -->
-    <div class="bg-white border rounded-lg p-4 space-y-4">
+    <div class="bg-white border border-gray-200 rounded-lg p-4 space-y-4">
       <div class="flex gap-4">
         <div class="flex-1 relative">
           <i class="bi-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
@@ -160,16 +165,16 @@ onMounted(async () => {
             v-model="searchQuery"
             type="text"
             placeholder="搜尋情境名稱或描述..."
-            class="w-full pl-10 pr-4 py-2 border rounded-lg"
+            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
           />
         </div>
 
-        <div class="flex border rounded-lg overflow-hidden">
+        <div class="flex border border-gray-300 rounded-lg overflow-hidden">
           <button
             v-for="option in visibilityOptions"
             :key="String(option.value)"
             type="button"
-            class="px-4 py-2 text-sm transition-colors"
+            class="px-4 py-2 text-sm transition-colors cursor-pointer"
             :class="{
               'bg-indigo-600 text-white': showPublicOnly === option.value,
               'bg-white text-gray-700 hover:bg-gray-50': showPublicOnly !== option.value,
@@ -187,7 +192,7 @@ onMounted(async () => {
           v-for="tagItem in tags"
           :key="tagItem.tag"
           type="button"
-          class="px-3 py-1 text-sm rounded-full transition-colors"
+          class="px-3 py-1 text-sm rounded-full transition-colors cursor-pointer"
           :class="{
             'bg-indigo-600 text-white': selectedTags.includes(tagItem.tag),
             'bg-gray-100 text-gray-700 hover:bg-gray-200': !selectedTags.includes(tagItem.tag),
@@ -201,12 +206,12 @@ onMounted(async () => {
 
     <!-- Loading -->
     <div v-if="isLoading" class="flex justify-center py-12">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      <i class="bi bi-arrow-repeat animate-spin text-2xl text-indigo-600"></i>
     </div>
 
     <!-- 情境列表 -->
     <div v-else-if="filteredScenarios.length > 0">
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-4">
         <ScenarioCard
           v-for="scenario in filteredScenarios"
           :key="scenario.id"
@@ -224,7 +229,8 @@ onMounted(async () => {
         <button
           type="button"
           :disabled="currentPage === 1"
-          class="px-3 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          class="px-3 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition cursor-pointer"
+          aria-label="上一頁"
           @click="goToPage(currentPage - 1)"
         >
           <i class="bi-chevron-left"></i>
@@ -237,7 +243,8 @@ onMounted(async () => {
         <button
           type="button"
           :disabled="currentPage === pagination.totalPages"
-          class="px-3 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          class="px-3 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition cursor-pointer"
+          aria-label="下一頁"
           @click="goToPage(currentPage + 1)"
         >
           <i class="bi-chevron-right"></i>
@@ -247,13 +254,14 @@ onMounted(async () => {
 
     <!-- 空狀態 -->
     <div v-else class="text-center py-12">
-      <i class="bi-palette text-5xl text-gray-300"></i>
-      <p class="mt-4 text-gray-500">尚無情境</p>
+      <i class="bi-palette text-4xl text-gray-300"></i>
+      <p class="mt-2 text-gray-500">尚無情境</p>
       <button
         type="button"
-        class="mt-4 px-4 py-2 text-indigo-600 hover:text-indigo-800"
+        class="mt-4 inline-flex items-center gap-2 px-3 py-2 text-sm text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 transition cursor-pointer"
         @click="handleCreate"
       >
+        <i class="bi-plus-lg"></i>
         建立第一個情境
       </button>
     </div>
@@ -264,16 +272,20 @@ onMounted(async () => {
         v-if="deleteTarget"
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       >
-        <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
-          <h3 class="text-lg font-semibold text-gray-900">確認刪除</h3>
-          <p class="mt-2 text-gray-600">
-            確定要刪除情境「{{ deleteTarget.name }}」嗎？此操作無法復原。
-          </p>
-          <div class="mt-6 flex justify-end gap-3">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
+          <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-semibold text-gray-900">確認刪除</h3>
+          </div>
+          <div class="px-6 py-5">
+            <p class="text-gray-600">
+              確定要刪除情境「{{ deleteTarget.name }}」嗎？此操作無法復原。
+            </p>
+          </div>
+          <div class="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
             <button
               type="button"
               :disabled="isDeleting"
-              class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
               @click="cancelDelete"
             >
               取消
@@ -281,12 +293,10 @@ onMounted(async () => {
             <button
               type="button"
               :disabled="isDeleting"
-              class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2"
+              class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               @click="executeDelete"
             >
-              <span v-if="isDeleting" class="animate-spin">
-                <i class="bi-arrow-repeat"></i>
-              </span>
+              <i v-if="isDeleting" class="bi bi-arrow-repeat animate-spin"></i>
               <span>{{ isDeleting ? '刪除中...' : '確認刪除' }}</span>
             </button>
           </div>

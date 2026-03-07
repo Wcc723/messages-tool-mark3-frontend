@@ -59,14 +59,15 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="flex items-center gap-3 px-4 py-2 border-b bg-white h-12">
+  <div class="flex items-center gap-3 px-4 py-2 border-b border-gray-200 bg-white h-12">
     <!-- 手機版側邊欄切換 -->
     <button
       type="button"
-      class="md:hidden p-1.5 hover:bg-gray-100 rounded-lg"
+      class="md:hidden p-1.5 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+      aria-label="開啟側邊欄"
       @click="emit('toggle-sidebar')"
     >
-      <i class="bi-list text-lg"></i>
+      <i class="bi-list text-lg text-gray-600"></i>
     </button>
 
     <!-- 連線狀態 -->
@@ -78,7 +79,7 @@ onUnmounted(() => {
     <!-- 模型切換 -->
     <select
       :value="selectedModel"
-      class="text-sm border rounded-lg px-2 py-1 bg-white"
+      class="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white cursor-pointer transition focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
       @change="emit('update:selectedModel', ($event.target as HTMLSelectElement).value as AIModel)"
     >
       <option
@@ -95,10 +96,10 @@ onUnmounted(() => {
     <!-- Session 狀態 -->
     <span
       v-if="currentSession"
-      class="text-xs"
+      class="text-xs font-medium"
       :class="{
-        'text-green-600': currentSession.status === 'active',
-        'text-red-500': currentSession.status === 'expired',
+        'text-emerald-600': currentSession.status === 'active',
+        'text-red-600': currentSession.status === 'expired',
       }"
     >
       <i class="bi-circle-fill text-[6px] mr-1"></i>

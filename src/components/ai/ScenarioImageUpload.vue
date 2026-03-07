@@ -109,10 +109,10 @@ function clearSelection() {
     <!-- 拖放區域 -->
     <div
       v-if="!selectedFile"
-      class="border-2 border-dashed rounded-lg p-6 text-center transition-colors"
+      class="border-2 border-dashed rounded-lg p-6 text-center transition-all"
       :class="{
-        'border-indigo-400 bg-indigo-50': isDragging,
-        'border-gray-300 hover:border-gray-400': !isDragging && canUpload,
+        'border-indigo-500 bg-indigo-50 scale-[1.01]': isDragging,
+        'border-gray-300 hover:border-indigo-400': !isDragging && canUpload,
         'border-gray-200 bg-gray-50 cursor-not-allowed': !canUpload,
       }"
       @dragover="handleDragOver"
@@ -147,7 +147,7 @@ function clearSelection() {
     </div>
 
     <!-- 預覽與設定 -->
-    <div v-if="selectedFile" class="border rounded-lg p-4 space-y-4">
+    <div v-if="selectedFile" class="border border-gray-200 rounded-lg p-4 space-y-4">
       <div class="flex gap-4">
         <!-- 圖片預覽 -->
         <div class="w-32 h-32 flex-shrink-0">
@@ -155,13 +155,13 @@ function clearSelection() {
             v-if="previewUrl"
             :src="previewUrl"
             alt="預覽"
-            class="w-full h-full object-cover rounded-lg"
+            class="w-full h-full object-cover rounded-lg shadow-sm"
           />
         </div>
 
         <!-- 設定欄位 -->
         <div class="flex-1 space-y-3">
-          <p class="text-sm text-gray-600 truncate">
+          <p class="text-sm font-medium text-gray-700 truncate">
             {{ selectedFile.name }}
           </p>
 
@@ -173,7 +173,7 @@ function clearSelection() {
               v-model="description"
               type="text"
               placeholder="例如：水彩風格、日系動漫風"
-              class="w-full border rounded-lg px-3 py-2 text-sm"
+              class="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
             />
           </div>
         </div>
@@ -183,14 +183,14 @@ function clearSelection() {
       <div class="flex justify-end gap-2">
         <button
           type="button"
-          class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+          class="px-4 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
           @click="clearSelection"
         >
           取消
         </button>
         <button
           type="button"
-          class="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+          class="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition cursor-pointer"
           @click="handleUpload"
         >
           上傳

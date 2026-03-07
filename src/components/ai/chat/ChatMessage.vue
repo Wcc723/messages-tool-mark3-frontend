@@ -64,15 +64,15 @@ function handleDownload() {
 <template>
   <!-- System message -->
   <div v-if="type === 'system'" class="flex justify-center py-2">
-    <span class="text-xs text-gray-400 bg-gray-50 px-3 py-1 rounded-full">
+    <span class="text-xs text-gray-500 bg-white border border-gray-200 px-3 py-1 rounded-full shadow-sm">
       {{ systemMessage }}
     </span>
   </div>
 
   <!-- User message -->
   <div v-else-if="type === 'user'" class="flex justify-end">
-    <div class="max-w-[70%] bg-indigo-600 text-white px-4 py-3 rounded-2xl rounded-br-sm">
-      <p class="text-sm whitespace-pre-wrap">{{ prompt }}</p>
+    <div class="max-w-[70%] bg-indigo-600 text-white px-4 py-3 rounded-2xl rounded-br-md shadow-sm">
+      <p class="text-sm whitespace-pre-wrap leading-relaxed">{{ prompt }}</p>
     </div>
   </div>
 
@@ -82,13 +82,13 @@ function handleDownload() {
       <!-- 生成中骨架動畫 -->
       <div
         v-if="isGenerating"
-        class="bg-gray-100 rounded-2xl rounded-bl-sm p-4"
+        class="bg-white border border-gray-200 rounded-2xl rounded-bl-md p-4 shadow-sm"
       >
         <div class="flex items-center gap-3">
-          <div class="w-16 h-16 bg-gray-200 rounded-lg animate-pulse"></div>
+          <div class="w-16 h-16 bg-gray-100 rounded-lg animate-pulse"></div>
           <div class="space-y-2 flex-1">
-            <div class="h-3 bg-gray-200 rounded animate-pulse w-3/4"></div>
-            <div class="h-3 bg-gray-200 rounded animate-pulse w-1/2"></div>
+            <div class="h-3 bg-gray-100 rounded animate-pulse w-3/4"></div>
+            <div class="h-3 bg-gray-100 rounded animate-pulse w-1/2"></div>
           </div>
         </div>
         <p class="text-xs text-gray-400 mt-2">生成中...</p>
@@ -97,22 +97,23 @@ function handleDownload() {
       <!-- 生成結果 -->
       <div
         v-else-if="result"
-        class="bg-gray-100 rounded-2xl rounded-bl-sm overflow-hidden"
+        class="bg-white border border-gray-200 rounded-2xl rounded-bl-md overflow-hidden shadow-sm"
       >
         <!-- 圖片 -->
-        <div v-if="result.imageUrl" class="relative">
+        <div v-if="result.imageUrl" class="relative group">
           <img
             :src="result.imageUrl"
             :alt="result.prompt"
-            class="w-full max-w-sm rounded-t-2xl cursor-pointer hover:opacity-90 transition-opacity"
+            class="w-full max-w-sm rounded-xl m-2 cursor-pointer hover:opacity-90 transition-opacity shadow-sm"
             @click="handlePreview"
           />
           <!-- 操作按鈕 -->
-          <div class="absolute bottom-2 right-2 flex gap-1.5">
+          <div class="absolute bottom-4 right-4 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               type="button"
-              class="p-1.5 bg-white/90 hover:bg-white rounded-lg shadow text-xs"
+              class="p-2 bg-white/95 hover:bg-white rounded-lg shadow-sm text-xs transition-colors cursor-pointer"
               title="下載圖片"
+              aria-label="下載圖片"
               @click.stop="handleDownload"
             >
               <i class="bi-download text-gray-700"></i>
@@ -123,11 +124,11 @@ function handleDownload() {
         <!-- 無圖片（失敗/過濾） -->
         <div
           v-else
-          class="flex items-center justify-center py-8 px-4 text-gray-400"
+          class="flex items-center justify-center py-8 px-4"
         >
           <div class="text-center">
-            <i class="bi-image text-3xl"></i>
-            <p v-if="result.status === 'filtered'" class="mt-2 text-sm text-yellow-600">
+            <i class="bi-image text-3xl text-gray-300"></i>
+            <p v-if="result.status === 'filtered'" class="mt-2 text-sm text-amber-800">
               內容已過濾
             </p>
             <p v-else-if="result.status === 'failed'" class="mt-2 text-sm text-red-600">
@@ -137,11 +138,11 @@ function handleDownload() {
         </div>
 
         <!-- 底部資訊 -->
-        <div class="px-3 py-2 space-y-1">
+        <div class="px-4 py-2.5 border-t border-gray-100">
           <div class="flex items-center gap-2">
             <span
               v-if="statusBadge"
-              class="px-1.5 py-0.5 rounded text-xs font-medium"
+              class="px-2 py-0.5 rounded text-xs font-medium"
               :class="statusBadge.class"
             >
               {{ statusBadge.text }}
@@ -151,19 +152,19 @@ function handleDownload() {
 
           <p
             v-if="result.errorMessage && result.status === 'filtered'"
-            class="text-xs text-yellow-600"
+            class="text-xs text-amber-800 mt-1"
           >
             {{ result.errorMessage }}
           </p>
           <p
             v-else-if="result.errorMessage"
-            class="text-xs text-red-600"
+            class="text-xs text-red-600 mt-1"
           >
             {{ result.errorMessage }}
           </p>
           <p
             v-if="result.text"
-            class="text-xs text-blue-600"
+            class="text-xs text-blue-600 mt-1"
           >
             {{ result.text }}
           </p>

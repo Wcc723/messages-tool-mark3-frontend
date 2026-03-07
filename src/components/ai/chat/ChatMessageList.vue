@@ -39,15 +39,17 @@ watch(
 </script>
 
 <template>
-  <div ref="containerRef" class="overflow-y-auto flex-1 p-4">
+  <div ref="containerRef" class="overflow-y-auto flex-1 p-4 bg-gray-50">
     <!-- 空狀態 -->
     <div
       v-if="messages.length === 0 && !isGenerating"
-      class="flex flex-col items-center justify-center h-full text-gray-400"
+      class="flex flex-col items-center justify-center h-full"
     >
-      <i class="bi-chat-square-text text-5xl mb-3"></i>
-      <p class="text-lg">開始你的第一次對話</p>
-      <p class="text-sm mt-1">輸入描述，AI 會為你生成圖片</p>
+      <div class="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mb-4">
+        <i class="bi-chat-square-text text-3xl text-indigo-400"></i>
+      </div>
+      <p class="text-lg font-semibold text-gray-900">開始你的第一次對話</p>
+      <p class="text-sm text-gray-500 mt-1">輸入描述，AI 會為你生成圖片</p>
     </div>
 
     <!-- 訊息列表 -->

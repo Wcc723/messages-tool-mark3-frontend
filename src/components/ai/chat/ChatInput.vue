@@ -119,14 +119,14 @@ function handleScenarioChange(event: Event) {
 </script>
 
 <template>
-  <div class="border-t bg-white px-4 py-3">
+  <div class="border-t border-gray-200 bg-white px-4 py-3 shadow-[0_-1px_3px_rgba(0,0,0,0.05)]">
     <div class="max-w-3xl mx-auto space-y-2">
-      <!-- 第一行：選項列 -->
+      <!-- 第一行：pill-style 選項列 -->
       <div class="flex items-center gap-2 flex-wrap">
         <!-- 角色選擇 -->
         <select
           :value="selectedCharacterId ?? ''"
-          class="text-xs border rounded-lg px-2 py-1.5 bg-white max-w-[140px]"
+          class="text-xs border border-gray-300 rounded-full px-3 py-1.5 bg-white max-w-[140px] cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           @change="handleCharacterChange"
         >
           <option value="">角色 (無)</option>
@@ -142,7 +142,7 @@ function handleScenarioChange(event: Event) {
         <!-- 情境選擇 -->
         <select
           :value="selectedScenarioId ?? ''"
-          class="text-xs border rounded-lg px-2 py-1.5 bg-white max-w-[140px]"
+          class="text-xs border border-gray-300 rounded-full px-3 py-1.5 bg-white max-w-[140px] cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           @change="handleScenarioChange"
         >
           <option value="">情境 (無)</option>
@@ -159,9 +159,10 @@ function handleScenarioChange(event: Event) {
         <div v-if="selectedCharacter && availableReferenceImages.length > 0" class="relative">
           <button
             type="button"
-            class="text-xs border rounded-lg px-2 py-1.5 hover:bg-gray-50 flex items-center gap-1"
+            class="text-xs border rounded-full px-3 py-1.5 flex items-center gap-1.5 transition-colors cursor-pointer"
             :class="{
               'border-indigo-500 bg-indigo-50 text-indigo-700': selectedReferenceImage,
+              'border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400': !selectedReferenceImage,
             }"
             @click="showReferenceImages = !showReferenceImages"
           >
@@ -172,15 +173,15 @@ function handleScenarioChange(event: Event) {
           <!-- 參考圖 popover -->
           <div
             v-if="showReferenceImages"
-            class="absolute bottom-full left-0 mb-2 bg-white border rounded-lg shadow-lg p-3 z-10 w-64"
+            class="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-xl shadow-lg p-3 z-10 w-64"
           >
             <div class="grid grid-cols-3 gap-2">
               <button
                 type="button"
-                class="aspect-square border-2 rounded-lg flex items-center justify-center text-gray-400 text-xs"
+                class="aspect-square border-2 rounded-lg flex items-center justify-center text-gray-400 text-xs cursor-pointer transition-colors"
                 :class="{
                   'border-indigo-500 bg-indigo-50': !selectedReferenceImage,
-                  'border-dashed': selectedReferenceImage,
+                  'border-dashed hover:border-gray-400': selectedReferenceImage,
                 }"
                 @click="selectedReferenceImage = null; showReferenceImages = false"
               >
@@ -190,9 +191,10 @@ function handleScenarioChange(event: Event) {
                 v-for="(img, index) in availableReferenceImages"
                 :key="index"
                 type="button"
-                class="aspect-square border-2 rounded-lg overflow-hidden"
+                class="aspect-square border-2 rounded-lg overflow-hidden cursor-pointer transition-all"
                 :class="{
                   'border-indigo-500 ring-2 ring-indigo-200': selectedReferenceImage?.url === img.url,
+                  'border-gray-200 hover:border-gray-400': selectedReferenceImage?.url !== img.url,
                 }"
                 :title="img.description || ''"
                 @click="selectedReferenceImage = img; showReferenceImages = false"
@@ -211,7 +213,7 @@ function handleScenarioChange(event: Event) {
         <div class="relative">
           <button
             type="button"
-            class="text-xs border rounded-lg px-2 py-1.5 hover:bg-gray-50 flex items-center gap-1"
+            class="text-xs border border-gray-300 rounded-full px-3 py-1.5 text-gray-600 hover:bg-gray-50 hover:border-gray-400 flex items-center gap-1.5 transition-colors cursor-pointer"
             @click="showSettings = !showSettings"
           >
             <i class="bi-gear"></i>
@@ -221,19 +223,19 @@ function handleScenarioChange(event: Event) {
           <!-- 設定 popover -->
           <div
             v-if="showSettings"
-            class="absolute bottom-full left-0 mb-2 bg-white border rounded-lg shadow-lg p-3 z-10 w-56 space-y-3"
+            class="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 rounded-xl shadow-lg p-4 z-10 w-56 space-y-3"
           >
             <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1.5">比例</label>
-              <div class="flex flex-wrap gap-1">
+              <label class="block text-xs font-medium text-gray-700 mb-1.5">比例</label>
+              <div class="flex flex-wrap gap-1.5">
                 <button
                   v-for="ratio in aspectRatioOptions"
                   :key="ratio"
                   type="button"
-                  class="px-2 py-1 text-xs border rounded transition-colors"
+                  class="px-2.5 py-1 text-xs border rounded-md transition-colors cursor-pointer"
                   :class="{
                     'border-indigo-500 bg-indigo-50 text-indigo-700': aspectRatio === ratio,
-                    'hover:border-gray-300': aspectRatio !== ratio,
+                    'border-gray-300 text-gray-600 hover:border-gray-400 hover:bg-gray-50': aspectRatio !== ratio,
                   }"
                   @click="emit('update:aspectRatio', ratio)"
                 >
@@ -242,16 +244,16 @@ function handleScenarioChange(event: Event) {
               </div>
             </div>
             <div>
-              <label class="block text-xs font-medium text-gray-600 mb-1.5">尺寸</label>
-              <div class="flex gap-1">
+              <label class="block text-xs font-medium text-gray-700 mb-1.5">尺寸</label>
+              <div class="flex gap-1.5">
                 <button
                   v-for="size in imageSizeOptions"
                   :key="size.value"
                   type="button"
-                  class="px-2 py-1 text-xs border rounded transition-colors"
+                  class="px-2.5 py-1 text-xs border rounded-md transition-colors cursor-pointer"
                   :class="{
                     'border-indigo-500 bg-indigo-50 text-indigo-700': imageSize === size.value,
-                    'hover:border-gray-300': imageSize !== size.value,
+                    'border-gray-300 text-gray-600 hover:border-gray-400 hover:bg-gray-50': imageSize !== size.value,
                   }"
                   @click="emit('update:imageSize', size.value)"
                 >
@@ -265,8 +267,8 @@ function handleScenarioChange(event: Event) {
         <span class="text-xs text-gray-400 ml-auto hidden sm:inline">Ctrl+Enter 送出</span>
       </div>
 
-      <!-- 第二行：輸入列 -->
-      <div class="flex items-end gap-2">
+      <!-- 第二行：輸入框卡片 -->
+      <div class="flex items-end gap-2 bg-gray-50 border border-gray-200 rounded-xl p-2">
         <div class="flex-1 relative">
           <textarea
             ref="textareaRef"
@@ -274,8 +276,8 @@ function handleScenarioChange(event: Event) {
             :disabled="disabled || isGenerating"
             :placeholder="allowEmpty ? '圖片描述 (選填，已選擇情境)' : '描述你想要生成的圖片...'"
             rows="1"
-            class="w-full px-3 py-2.5 border rounded-xl resize-none focus:outline-none focus:border-indigo-500 disabled:bg-gray-50 text-sm leading-relaxed"
-            :class="{ 'border-red-400': isOverLimit }"
+            class="w-full px-3 py-2 bg-transparent border-0 resize-none focus:outline-none focus:ring-0 disabled:text-gray-400 text-sm leading-relaxed placeholder:text-gray-400"
+            :class="{ 'text-red-600': isOverLimit }"
             @keydown="handleKeydown"
           ></textarea>
           <span
@@ -290,11 +292,12 @@ function handleScenarioChange(event: Event) {
         <button
           type="button"
           :disabled="!canSubmit"
-          class="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-colors"
+          class="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center transition-colors"
           :class="{
-            'bg-indigo-600 text-white hover:bg-indigo-700': canSubmit,
+            'bg-indigo-600 text-white hover:bg-indigo-700 cursor-pointer': canSubmit,
             'bg-gray-200 text-gray-400 cursor-not-allowed': !canSubmit,
           }"
+          aria-label="送出訊息"
           @click="handleSubmit"
         >
           <svg
@@ -318,7 +321,7 @@ function handleScenarioChange(event: Event) {
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             ></path>
           </svg>
-          <i v-else class="bi-send"></i>
+          <i v-else class="bi-send text-sm"></i>
         </button>
       </div>
     </div>

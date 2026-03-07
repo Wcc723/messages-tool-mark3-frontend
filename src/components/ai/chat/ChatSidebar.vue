@@ -139,15 +139,18 @@ onMounted(() => {
 <template>
   <div class="flex flex-col h-full bg-gray-50">
     <!-- 標題 -->
-    <div class="p-4 border-b bg-white">
-      <h2 class="font-semibold text-gray-900 text-sm">歷史對話</h2>
+    <div class="p-4 border-b border-gray-200 bg-white">
+      <div class="flex items-center gap-2">
+        <div class="w-1 h-5 bg-indigo-600 rounded-full"></div>
+        <h2 class="font-semibold text-gray-900 text-sm">歷史對話</h2>
+      </div>
     </div>
 
     <!-- 新對話按鈕 -->
     <div class="p-3">
       <button
         type="button"
-        class="w-full py-2 text-sm font-medium text-indigo-600 border border-indigo-200 rounded-lg hover:bg-indigo-50 transition-colors flex items-center justify-center gap-1.5"
+        class="w-full py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
         @click="emit('new-chat')"
       >
         <i class="bi-plus-lg"></i>
@@ -156,15 +159,16 @@ onMounted(() => {
     </div>
 
     <!-- Session 列表 -->
-    <div class="flex-1 overflow-y-auto px-3 pb-3 space-y-1">
+    <div class="flex-1 overflow-y-auto px-3 pb-3 space-y-1.5">
       <!-- Loading -->
       <div v-if="isLoading" class="text-center py-8 text-gray-400">
         <i class="bi-arrow-repeat animate-spin text-xl"></i>
       </div>
 
       <!-- Empty -->
-      <div v-else-if="sessions.length === 0" class="text-center py-8 text-gray-400 text-sm">
-        尚無歷史對話
+      <div v-else-if="sessions.length === 0" class="text-center py-12">
+        <i class="bi-chat-square-text text-4xl text-gray-300"></i>
+        <p class="mt-2 text-gray-500 text-sm">尚無歷史對話</p>
       </div>
 
       <!-- Items -->
@@ -177,27 +181,27 @@ onMounted(() => {
           <!-- 刪除確認 -->
           <div
             v-if="confirmDeleteId === session.id"
-            class="bg-white border rounded-lg p-2.5 space-y-2"
+            class="bg-white border border-gray-200 rounded-lg p-2.5 space-y-2 shadow-sm"
           >
             <p class="text-xs text-gray-600">確定刪除？</p>
             <div class="flex gap-1.5">
               <button
                 type="button"
-                class="flex-1 py-1 text-xs text-white bg-red-600 hover:bg-red-700 rounded transition-colors"
+                class="flex-1 py-1 text-xs text-white bg-red-600 hover:bg-red-700 rounded transition-colors cursor-pointer"
                 @click="handleDelete(session.id, false)"
               >
                 全部刪除
               </button>
               <button
                 type="button"
-                class="flex-1 py-1 text-xs text-red-600 border border-red-200 hover:bg-red-50 rounded transition-colors"
+                class="flex-1 py-1 text-xs text-red-600 border border-red-200 hover:bg-red-50 rounded transition-colors cursor-pointer"
                 @click="handleDelete(session.id, true)"
               >
                 保留記錄
               </button>
               <button
                 type="button"
-                class="px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 rounded transition-colors"
+                class="px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 rounded transition-colors cursor-pointer"
                 @click="confirmDeleteId = null"
               >
                 取消
@@ -209,16 +213,16 @@ onMounted(() => {
           <button
             v-else
             type="button"
-            class="w-full text-left p-2.5 rounded-lg transition-colors flex items-center gap-2.5"
+            class="w-full text-left p-2.5 rounded-lg transition-all flex items-center gap-2.5 cursor-pointer"
             :class="{
-              'bg-indigo-50 border border-indigo-200': currentSessionId === session.id,
-              'hover:bg-white': currentSessionId !== session.id,
+              'bg-indigo-50 border border-indigo-200 shadow-sm': currentSessionId === session.id,
+              'bg-white border border-transparent hover:border-gray-200 hover:shadow-sm': currentSessionId !== session.id,
               'opacity-50': deletingSessionId === session.id,
             }"
             @click="emit('select', session)"
           >
             <!-- 縮圖 -->
-            <div class="w-10 h-10 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+            <div class="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
               <img
                 v-if="session.lastImage"
                 :src="session.lastImage"
@@ -237,7 +241,7 @@ onMounted(() => {
                   {{ getModelDisplayName(session.model) }}
                 </span>
                 <span
-                  class="text-[10px] px-1 py-0.5 rounded"
+                  class="text-[10px] px-1.5 py-0.5 rounded font-medium"
                   :class="getStatusBadge(session.status).class"
                 >
                   {{ getStatusBadge(session.status).text }}
@@ -255,8 +259,9 @@ onMounted(() => {
             <!-- 刪除按鈕 -->
             <button
               type="button"
-              class="flex-shrink-0 p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all rounded"
+              class="flex-shrink-0 p-1 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all rounded cursor-pointer"
               title="刪除"
+              aria-label="刪除對話"
               @click.stop="confirmDeleteId = session.id"
             >
               <i class="bi-trash text-xs"></i>
@@ -268,7 +273,7 @@ onMounted(() => {
         <button
           v-if="currentPage < totalPages"
           type="button"
-          class="w-full py-2 text-xs text-gray-500 hover:text-indigo-600 transition-colors"
+          class="w-full py-2 text-xs text-gray-500 hover:text-indigo-600 transition-colors cursor-pointer"
           @click="loadMore"
         >
           載入更多...

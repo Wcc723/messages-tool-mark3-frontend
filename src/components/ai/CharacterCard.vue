@@ -66,15 +66,15 @@ function handleDelete(event: Event) {
 
 <template>
   <div
-    class="bg-white border rounded-lg overflow-hidden transition-all"
+    class="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm transition-all hover:shadow-md"
     :class="{
-      'cursor-pointer hover:border-indigo-300 hover:shadow-md': selectable,
+      'cursor-pointer hover:border-indigo-300': selectable,
       'ring-2 ring-indigo-500 border-indigo-500': selected,
     }"
     @click="handleSelect"
   >
     <!-- 縮圖 -->
-    <div class="aspect-square bg-gray-100 relative">
+    <div class="aspect-[4/3] bg-gray-100 relative border-b border-gray-100">
       <img
         v-if="thumbnailUrl"
         :src="thumbnailUrl"
@@ -91,10 +91,10 @@ function handleDelete(event: Event) {
       <!-- 公開/私人標籤 -->
       <div class="absolute top-2 left-2">
         <span
-          class="px-2 py-0.5 rounded text-xs font-medium"
+          class="px-2 py-0.5 rounded text-xs font-medium backdrop-blur-sm"
           :class="{
-            'bg-green-100 text-green-700': character.isPublic,
-            'bg-gray-100 text-gray-700': !character.isPublic,
+            'bg-green-100/90 text-green-700': character.isPublic,
+            'bg-gray-100/90 text-gray-700': !character.isPublic,
           }"
         >
           {{ character.isPublic ? '公開' : '私人' }}
@@ -125,7 +125,7 @@ function handleDelete(event: Event) {
         <span
           v-for="tag in displayTags"
           :key="tag"
-          class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs"
+          class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs"
         >
           {{ tag }}
         </span>
@@ -135,10 +135,10 @@ function handleDelete(event: Event) {
       </div>
 
       <!-- 操作按鈕 -->
-      <div v-if="showActions" class="flex items-center gap-2 pt-2 border-t">
+      <div v-if="showActions" class="flex items-center gap-2 pt-2 border-t border-gray-200">
         <button
           type="button"
-          class="flex-1 px-3 py-1.5 text-sm text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+          class="flex-1 px-3 py-1.5 text-sm text-indigo-600 hover:bg-indigo-50 rounded transition cursor-pointer"
           @click="handleEdit"
         >
           <i class="bi-pencil mr-1"></i>
@@ -146,7 +146,7 @@ function handleDelete(event: Event) {
         </button>
         <button
           type="button"
-          class="flex-1 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded transition-colors"
+          class="flex-1 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded transition cursor-pointer"
           @click="handleDelete"
         >
           <i class="bi-trash mr-1"></i>

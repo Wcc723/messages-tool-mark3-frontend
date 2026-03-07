@@ -192,9 +192,14 @@ onMounted(async () => {
 <template>
   <div class="space-y-6">
     <!-- 頁面標題 -->
-    <div>
-      <h1 class="text-2xl font-bold text-gray-900">AI 統計</h1>
-      <p class="mt-1 text-gray-500">查看 AI 圖片生成的使用統計與審計日誌</p>
+    <div class="flex items-center gap-3 mb-2">
+      <div class="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center">
+        <i class="bi bi-bar-chart-line text-gray-600 text-lg"></i>
+      </div>
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">AI 統計</h1>
+        <p class="text-gray-600">查看 AI 圖片生成的使用統計與審計日誌</p>
+      </div>
     </div>
 
     <!-- 錯誤訊息 -->
@@ -217,7 +222,7 @@ onMounted(async () => {
 
     <!-- 統計卡片 -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="bg-white border rounded-lg p-4">
+      <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
         <div class="flex items-center gap-3">
           <div class="p-3 bg-indigo-100 rounded-lg">
             <i class="bi-images text-xl text-indigo-600"></i>
@@ -231,10 +236,10 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div class="bg-white border rounded-lg p-4">
+      <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
         <div class="flex items-center gap-3">
-          <div class="p-3 bg-green-100 rounded-lg">
-            <i class="bi-coin text-xl text-green-600"></i>
+          <div class="p-3 bg-emerald-100 rounded-lg">
+            <i class="bi-coin text-xl text-emerald-600"></i>
           </div>
           <div>
             <p class="text-sm text-gray-500">Token 使用量</p>
@@ -245,7 +250,7 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div class="bg-white border rounded-lg p-4">
+      <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
         <div class="flex items-center gap-3">
           <div class="p-3 bg-yellow-100 rounded-lg">
             <i class="bi-currency-dollar text-xl text-yellow-600"></i>
@@ -259,7 +264,7 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div class="bg-white border rounded-lg p-4">
+      <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
         <div class="flex items-center gap-3">
           <div class="p-3 bg-purple-100 rounded-lg">
             <i class="bi-people text-xl text-purple-600"></i>
@@ -276,7 +281,7 @@ onMounted(async () => {
 
     <!-- 今日統計與活躍 Session -->
     <div v-if="statistics" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="bg-white border rounded-lg p-4">
+      <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
         <div class="flex items-center justify-between">
           <span class="text-sm text-gray-500">今日生成</span>
           <span class="text-lg font-semibold text-indigo-600">
@@ -285,16 +290,16 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div class="bg-white border rounded-lg p-4">
+      <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
         <div class="flex items-center justify-between">
           <span class="text-sm text-gray-500">今日使用者</span>
-          <span class="text-lg font-semibold text-green-600">
+          <span class="text-lg font-semibold text-emerald-600">
             {{ statistics.today?.users ?? 0 }}
           </span>
         </div>
       </div>
 
-      <div class="bg-white border rounded-lg p-4">
+      <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
         <div class="flex items-center justify-between">
           <span class="text-sm text-gray-500">今日成本</span>
           <span class="text-lg font-semibold text-yellow-600">
@@ -303,7 +308,7 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div class="bg-white border rounded-lg p-4">
+      <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-4">
         <div class="flex items-center justify-between">
           <span class="text-sm text-gray-500">活躍 Session</span>
           <span class="text-lg font-semibold text-purple-600">
@@ -314,15 +319,15 @@ onMounted(async () => {
     </div>
 
     <!-- 使用趨勢表格 -->
-    <div class="bg-white border rounded-lg overflow-hidden">
-      <div class="p-4 border-b flex items-center justify-between">
+    <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <div class="p-4 border-b border-gray-200 flex items-center justify-between">
         <h2 class="font-semibold text-gray-900">使用趨勢</h2>
         <div class="flex gap-2">
           <button
             v-for="days in trendDaysOptions"
             :key="days"
             type="button"
-            class="px-3 py-1 text-sm rounded transition-colors"
+            class="px-3 py-1 text-sm rounded-full transition-colors cursor-pointer"
             :class="{
               'bg-indigo-600 text-white': trendDays === days,
               'bg-gray-100 text-gray-700 hover:bg-gray-200': trendDays !== days,
@@ -335,63 +340,64 @@ onMounted(async () => {
       </div>
 
       <div v-if="isLoadingTrend" class="p-8 text-center">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+        <i class="bi bi-arrow-repeat animate-spin text-2xl text-indigo-600"></i>
       </div>
 
       <div v-else-if="usageTrend?.length > 0" class="overflow-x-auto">
-        <table class="w-full">
+        <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">日期</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">生成次數</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">輸入 Token</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">輸出 Token</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">成本</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">使用者</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">日期</th>
+              <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">生成次數</th>
+              <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">輸入 Token</th>
+              <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">輸出 Token</th>
+              <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">成本</th>
+              <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">使用者</th>
             </tr>
           </thead>
-          <tbody class="divide-y">
-            <tr v-for="item in usageTrend" :key="item.date" class="hover:bg-gray-50">
-              <td class="px-4 py-3 text-sm text-gray-900">{{ formatDate(item.date) }}</td>
-              <td class="px-4 py-3 text-sm text-gray-900 text-right">{{ item.generations }}</td>
-              <td class="px-4 py-3 text-sm text-gray-900 text-right">{{ formatNumber(item.inputTokens) }}</td>
-              <td class="px-4 py-3 text-sm text-gray-900 text-right">{{ formatNumber(item.outputTokens) }}</td>
-              <td class="px-4 py-3 text-sm text-yellow-600 text-right">{{ formatCost(item.cost) }}</td>
-              <td class="px-4 py-3 text-sm text-gray-900 text-right">{{ item.users }}</td>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr v-for="item in usageTrend" :key="item.date" class="hover:bg-gray-50 transition">
+              <td class="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">{{ formatDate(item.date) }}</td>
+              <td class="px-6 py-4 text-sm text-gray-900 text-right whitespace-nowrap">{{ item.generations }}</td>
+              <td class="px-6 py-4 text-sm text-gray-900 text-right whitespace-nowrap">{{ formatNumber(item.inputTokens) }}</td>
+              <td class="px-6 py-4 text-sm text-gray-900 text-right whitespace-nowrap">{{ formatNumber(item.outputTokens) }}</td>
+              <td class="px-6 py-4 text-sm text-yellow-600 text-right whitespace-nowrap">{{ formatCost(item.cost) }}</td>
+              <td class="px-6 py-4 text-sm text-gray-900 text-right whitespace-nowrap">{{ item.users }}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <div v-else class="p-8 text-center text-gray-500">
-        無趨勢資料
+      <div v-else class="text-center py-12">
+        <i class="bi bi-graph-up text-4xl text-gray-300"></i>
+        <p class="mt-2 text-gray-500">無趨勢資料</p>
       </div>
     </div>
 
     <!-- 使用者排行榜 -->
-    <div class="bg-white border rounded-lg overflow-hidden">
-      <div class="p-4 border-b">
+    <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <div class="p-4 border-b border-gray-200">
         <h2 class="font-semibold text-gray-900">使用者排行榜</h2>
       </div>
 
       <div v-if="isLoadingLeaderboard" class="p-8 text-center">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+        <i class="bi bi-arrow-repeat animate-spin text-2xl text-indigo-600"></i>
       </div>
 
       <div v-else-if="leaderboard?.length > 0" class="overflow-x-auto">
-        <table class="w-full">
+        <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">排名</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">使用者</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">生成次數</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Token 使用量</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">成本</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">排名</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">使用者</th>
+              <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">生成次數</th>
+              <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Token 使用量</th>
+              <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">成本</th>
             </tr>
           </thead>
-          <tbody class="divide-y">
-            <tr v-for="item in leaderboard" :key="item.user.id" class="hover:bg-gray-50">
-              <td class="px-4 py-3">
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr v-for="item in leaderboard" :key="item.user.id" class="hover:bg-gray-50 transition">
+              <td class="px-6 py-4">
                 <span
                   class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium"
                   :class="{
@@ -404,33 +410,34 @@ onMounted(async () => {
                   {{ item.rank }}
                 </span>
               </td>
-              <td class="px-4 py-3 text-sm text-gray-900">{{ item.user.name }}</td>
-              <td class="px-4 py-3 text-sm text-gray-900 text-right">{{ item.generations }}</td>
-              <td class="px-4 py-3 text-sm text-gray-900 text-right">{{ formatNumber(item.inputTokens + item.outputTokens) }}</td>
-              <td class="px-4 py-3 text-sm text-yellow-600 text-right">{{ formatCost(item.cost) }}</td>
+              <td class="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">{{ item.user.name }}</td>
+              <td class="px-6 py-4 text-sm text-gray-900 text-right whitespace-nowrap">{{ item.generations }}</td>
+              <td class="px-6 py-4 text-sm text-gray-900 text-right whitespace-nowrap">{{ formatNumber(item.inputTokens + item.outputTokens) }}</td>
+              <td class="px-6 py-4 text-sm text-yellow-600 text-right whitespace-nowrap">{{ formatCost(item.cost) }}</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <div v-else class="p-8 text-center text-gray-500">
-        無排行榜資料
+      <div v-else class="text-center py-12">
+        <i class="bi bi-trophy text-4xl text-gray-300"></i>
+        <p class="mt-2 text-gray-500">無排行榜資料</p>
       </div>
     </div>
 
     <!-- 生成歷史 -->
-    <div class="bg-white border rounded-lg overflow-hidden">
-      <div class="p-4 border-b">
+    <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <div class="p-4 border-b border-gray-200">
         <h2 class="font-semibold text-gray-900">生成歷史</h2>
       </div>
 
       <!-- 篩選 -->
-      <div class="p-4 border-b bg-gray-50 flex flex-wrap gap-4">
+      <div class="p-4 border-b border-gray-200 bg-gray-50 flex flex-wrap gap-4">
         <div>
-          <label class="block text-xs text-gray-500 mb-1">狀態</label>
+          <label class="block text-xs font-medium text-gray-700 mb-1">狀態</label>
           <select
             v-model="historyStatus"
-            class="border rounded px-3 py-1.5 text-sm"
+            class="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer transition"
             @change="filterHistory"
           >
             <option value="">全部</option>
@@ -441,32 +448,32 @@ onMounted(async () => {
         </div>
 
         <div>
-          <label class="block text-xs text-gray-500 mb-1">使用者 ID</label>
+          <label class="block text-xs font-medium text-gray-700 mb-1">使用者 ID</label>
           <input
             v-model="historyUserId"
             type="text"
             placeholder="輸入使用者 ID"
-            class="border rounded px-3 py-1.5 text-sm w-40"
+            class="border border-gray-300 rounded-md px-3 py-1.5 text-sm w-40 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
             @keydown.enter="filterHistory"
           />
         </div>
 
         <div>
-          <label class="block text-xs text-gray-500 mb-1">開始日期</label>
+          <label class="block text-xs font-medium text-gray-700 mb-1">開始日期</label>
           <input
             v-model="historyStartDate"
             type="date"
-            class="border rounded px-3 py-1.5 text-sm"
+            class="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
             @change="filterHistory"
           />
         </div>
 
         <div>
-          <label class="block text-xs text-gray-500 mb-1">結束日期</label>
+          <label class="block text-xs font-medium text-gray-700 mb-1">結束日期</label>
           <input
             v-model="historyEndDate"
             type="date"
-            class="border rounded px-3 py-1.5 text-sm"
+            class="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
             @change="filterHistory"
           />
         </div>
@@ -474,7 +481,7 @@ onMounted(async () => {
         <div class="flex items-end">
           <button
             type="button"
-            class="px-4 py-1.5 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700"
+            class="px-4 py-1.5 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition cursor-pointer"
             @click="filterHistory"
           >
             篩選
@@ -483,33 +490,33 @@ onMounted(async () => {
       </div>
 
       <div v-if="isLoadingHistory" class="p-8 text-center">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+        <i class="bi bi-arrow-repeat animate-spin text-2xl text-indigo-600"></i>
       </div>
 
       <div v-else-if="historyList?.length > 0" class="overflow-x-auto">
-        <table class="w-full">
+        <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">時間</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">使用者</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Prompt</th>
-              <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">狀態</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Token</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">成本</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">時間</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">使用者</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Prompt</th>
+              <th class="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">狀態</th>
+              <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Token</th>
+              <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">成本</th>
             </tr>
           </thead>
-          <tbody class="divide-y">
-            <tr v-for="item in historyList" :key="item.id" class="hover:bg-gray-50">
-              <td class="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr v-for="item in historyList" :key="item.id" class="hover:bg-gray-50 transition">
+              <td class="px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
                 {{ formatDateTime(item.createdAt) }}
               </td>
-              <td class="px-4 py-3 text-sm text-gray-900 whitespace-nowrap">
+              <td class="px-6 py-4 text-sm text-gray-900 whitespace-nowrap">
                 {{ item.user?.name || item.userId }}
               </td>
-              <td class="px-4 py-3 text-sm text-gray-700 max-w-xs truncate">
+              <td class="px-6 py-4 text-sm text-gray-700 max-w-xs truncate">
                 {{ item.prompt }}
               </td>
-              <td class="px-4 py-3 text-center">
+              <td class="px-6 py-4 text-center">
                 <span
                   class="px-2 py-0.5 text-xs font-medium rounded"
                   :class="getStatusClass(item.status)"
@@ -517,10 +524,10 @@ onMounted(async () => {
                   {{ getStatusText(item.status) }}
                 </span>
               </td>
-              <td class="px-4 py-3 text-sm text-gray-900 text-right">
+              <td class="px-6 py-4 text-sm text-gray-900 text-right whitespace-nowrap">
                 {{ item.inputTokens + item.outputTokens }}
               </td>
-              <td class="px-4 py-3 text-sm text-yellow-600 text-right">
+              <td class="px-6 py-4 text-sm text-yellow-600 text-right whitespace-nowrap">
                 {{ formatCost(item.estimatedCost) }}
               </td>
             </tr>
@@ -528,19 +535,21 @@ onMounted(async () => {
         </table>
       </div>
 
-      <div v-else class="p-8 text-center text-gray-500">
-        無歷史記錄
+      <div v-else class="text-center py-12">
+        <i class="bi bi-clock-history text-4xl text-gray-300"></i>
+        <p class="mt-2 text-gray-500">無歷史記錄</p>
       </div>
 
       <!-- 分頁 -->
       <div
         v-if="historyTotalPages > 1"
-        class="p-4 border-t flex items-center justify-center gap-2"
+        class="px-6 py-3 border-t border-gray-200 flex items-center justify-center gap-2 text-sm text-gray-600"
       >
         <button
           type="button"
           :disabled="historyPage === 1"
-          class="px-3 py-2 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          class="px-3 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition cursor-pointer"
+          aria-label="上一頁"
           @click="goToHistoryPage(historyPage - 1)"
         >
           <i class="bi-chevron-left"></i>
@@ -553,7 +562,8 @@ onMounted(async () => {
         <button
           type="button"
           :disabled="historyPage === historyTotalPages"
-          class="px-3 py-2 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          class="px-3 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition cursor-pointer"
+          aria-label="下一頁"
           @click="goToHistoryPage(historyPage + 1)"
         >
           <i class="bi-chevron-right"></i>

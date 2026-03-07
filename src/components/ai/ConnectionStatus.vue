@@ -16,10 +16,10 @@ const statusConfig = computed(() => {
   switch (props.state) {
     case 'authenticated':
       return {
-        color: 'bg-green-500',
+        color: 'bg-emerald-500',
         text: '已連線',
-        textColor: 'text-green-700',
-        bgColor: 'bg-green-50',
+        textColor: 'text-emerald-700',
+        bgColor: 'bg-emerald-50',
         showReconnect: false,
       }
     case 'connected':
@@ -77,7 +77,7 @@ function handleReconnect() {
     <button
       v-if="statusConfig.showReconnect"
       type="button"
-      class="ml-1 text-sm text-red-600 hover:text-red-800 underline"
+      class="ml-1 px-2 py-0.5 text-xs font-medium text-red-600 bg-red-100 rounded-full hover:bg-red-200 transition cursor-pointer"
       @click="handleReconnect"
     >
       重新連線

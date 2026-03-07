@@ -177,22 +177,22 @@ function handleNewChat() {
 async function handleSessionSelect(session: SessionItem) {
   showMobileSidebar.value = false
 
-  if (session.status === 'active') {
-    aiGenerationStore.clearHistory()
-    aiGenerationStore.resumeSession(session.id)
-  } else {
-    try {
-      const detail = await aiSessionsApi.getSessionDetail(session.id)
-      aiGenerationStore.loadHistoryFromSession(detail.data.history)
+  try {
+    const detail = await aiSessionsApi.getSessionDetail(session.id)
+    aiGenerationStore.loadHistoryFromSession(detail.data.history)
+
+    if (session.status === 'active') {
+      aiGenerationStore.resumeSession(session.id)
+    } else {
       aiGenerationStore.startSession(
         session.model,
         session.characterId ?? undefined,
         session.scenarioId ?? undefined,
         session.settings,
       )
-    } catch (err) {
-      console.error('恢復 Session 失敗:', err)
     }
+  } catch (err) {
+    console.error('恢復 Session 失敗:', err)
   }
 }
 
@@ -232,7 +232,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="flex h-[calc(100vh-64px)]">
+  <div class="flex h-[calc(100vh-48px)] -m-6">
     <!-- 側邊欄（桌面） -->
     <ChatSidebar
       class="w-72 border-r hidden md:flex flex-col"
@@ -264,7 +264,7 @@ onMounted(async () => {
     </Teleport>
 
     <!-- 主要內容 -->
-    <div class="flex-1 flex flex-col min-w-0">
+    <div class="flex-1 flex flex-col min-w-0 bg-gray-50">
       <ChatToolbar
         :connection-state="connectionState"
         :current-session="currentSession"

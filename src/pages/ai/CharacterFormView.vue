@@ -164,18 +164,24 @@ onMounted(async () => {
     <div class="flex items-center gap-4">
       <button
         type="button"
-        class="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        class="p-2 hover:bg-gray-100 rounded-lg transition cursor-pointer"
+        aria-label="返回"
         @click="handleCancel"
       >
         <i class="bi-arrow-left text-xl"></i>
       </button>
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900">
-          {{ isEditMode ? '編輯角色' : '新增角色' }}
-        </h1>
-        <p class="mt-1 text-gray-500">
-          {{ isEditMode ? '修改角色資訊與參考圖片' : '建立新的 AI 生成角色' }}
-        </p>
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center">
+          <i class="bi bi-person-badge text-gray-600 text-lg"></i>
+        </div>
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">
+            {{ isEditMode ? '編輯角色' : '新增角色' }}
+          </h1>
+          <p class="text-gray-600">
+            {{ isEditMode ? '修改角色資訊與參考圖片' : '建立新的 AI 生成角色' }}
+          </p>
+        </div>
       </div>
     </div>
 
@@ -200,8 +206,16 @@ onMounted(async () => {
     <!-- 表單 -->
     <form @submit.prevent="handleSubmit">
       <!-- 基本資訊 -->
-      <div class="bg-white border rounded-lg p-6 space-y-6">
-        <h2 class="text-lg font-semibold text-gray-900">基本資訊</h2>
+      <div class="bg-white border border-gray-200 rounded-lg p-6 space-y-6">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center">
+            <i class="bi bi-info-circle text-gray-600 text-lg"></i>
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900">基本資訊</h2>
+            <p class="text-sm text-gray-600">設定角色的名稱與描述</p>
+          </div>
+        </div>
 
         <!-- 名稱 -->
         <div>
@@ -213,7 +227,7 @@ onMounted(async () => {
             type="text"
             required
             placeholder="輸入角色名稱"
-            class="w-full border rounded-lg px-4 py-2"
+            class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
           />
         </div>
 
@@ -226,7 +240,7 @@ onMounted(async () => {
             v-model="form.description"
             rows="3"
             placeholder="描述這個角色的特徵..."
-            class="w-full border rounded-lg px-4 py-2 resize-none"
+            class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition resize-none"
           ></textarea>
         </div>
 
@@ -240,12 +254,12 @@ onMounted(async () => {
             <span
               v-for="(tag, index) in form.tags"
               :key="tag"
-              class="inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm"
+              class="inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm hover:shadow-sm transition"
             >
               {{ tag }}
               <button
                 type="button"
-                class="hover:text-indigo-900"
+                class="hover:text-indigo-900 cursor-pointer"
                 @click="removeTag(index)"
               >
                 <i class="bi-x"></i>
@@ -258,12 +272,12 @@ onMounted(async () => {
               v-model="newTag"
               type="text"
               placeholder="新增標籤"
-              class="flex-1 border rounded-lg px-4 py-2"
+              class="flex-1 px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
               @keydown.enter.prevent="addTag"
             />
             <button
               type="button"
-              class="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
+              class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
               @click="addTag"
             >
               新增
@@ -277,7 +291,7 @@ onMounted(async () => {
                 v-for="tagItem in allTags.filter(t => !form.tags.includes(t.tag))"
                 :key="tagItem.tag"
                 type="button"
-                class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors"
+                class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition-colors cursor-pointer"
                 @click="selectExistingTag(tagItem.tag)"
               >
                 {{ tagItem.tag }} ({{ tagItem.count }})
@@ -308,9 +322,14 @@ onMounted(async () => {
       <!-- 參考圖片（僅編輯模式） -->
       <template v-if="isEditMode && currentCharacter">
         <!-- 角色參考圖片 -->
-        <div class="bg-white border rounded-lg p-6 space-y-4 mt-6">
+        <div class="bg-white border border-gray-200 rounded-lg p-6 space-y-4 mt-6">
           <div class="flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-gray-900">角色參考圖片</h2>
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center">
+                <i class="bi bi-image text-gray-600 text-lg"></i>
+              </div>
+              <h2 class="text-lg font-semibold text-gray-900">角色參考圖片</h2>
+            </div>
             <span class="text-sm text-gray-500">
               {{ currentCharacter.referenceImages?.images?.length || 0 }} / 5
             </span>
@@ -334,10 +353,10 @@ onMounted(async () => {
                 :alt="`參考圖片 ${index + 1}`"
                 class="w-full aspect-square object-cover rounded-lg"
               />
-              <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+              <div class="absolute inset-0 bg-black/50 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                 <button
                   type="button"
-                  class="p-2 bg-red-500 text-white rounded-full hover:bg-red-600"
+                  class="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 cursor-pointer transition"
                   @click="handleDeleteImage('character', index)"
                 >
                   <i class="bi-trash"></i>
@@ -360,9 +379,14 @@ onMounted(async () => {
         </div>
 
         <!-- 物件參考圖片 -->
-        <div class="bg-white border rounded-lg p-6 space-y-4 mt-6">
+        <div class="bg-white border border-gray-200 rounded-lg p-6 space-y-4 mt-6">
           <div class="flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-gray-900">物件參考圖片</h2>
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center">
+                <i class="bi bi-box text-gray-600 text-lg"></i>
+              </div>
+              <h2 class="text-lg font-semibold text-gray-900">物件參考圖片</h2>
+            </div>
             <span class="text-sm text-gray-500">
               {{ currentCharacter.referenceImages?.objectImages?.length || 0 }} / 6
             </span>
@@ -386,10 +410,10 @@ onMounted(async () => {
                 :alt="`物件圖片 ${index + 1}`"
                 class="w-full aspect-square object-cover rounded-lg"
               />
-              <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+              <div class="absolute inset-0 bg-black/50 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                 <button
                   type="button"
-                  class="p-2 bg-red-500 text-white rounded-full hover:bg-red-600"
+                  class="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 cursor-pointer transition"
                   @click="handleDeleteImage('object', index)"
                 >
                   <i class="bi-trash"></i>
@@ -427,10 +451,10 @@ onMounted(async () => {
       </div>
 
       <!-- 操作按鈕 -->
-      <div class="flex justify-end gap-4 mt-6">
+      <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end mt-6 border-t border-gray-200 pt-6">
         <button
           type="button"
-          class="px-6 py-2.5 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          class="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
           @click="handleCancel"
         >
           取消
@@ -438,11 +462,9 @@ onMounted(async () => {
         <button
           type="submit"
           :disabled="isLoading"
-          class="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+          class="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition cursor-pointer disabled:bg-indigo-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
-          <span v-if="isLoading" class="animate-spin">
-            <i class="bi-arrow-repeat"></i>
-          </span>
+          <i v-if="isLoading" class="bi bi-arrow-repeat animate-spin"></i>
           <span>{{ isEditMode ? '儲存變更' : '建立角色' }}</span>
         </button>
       </div>

@@ -255,8 +255,7 @@ export const useAiGenerationStore = defineStore('aiGeneration', () => {
       expiresAt: session.expiresAt,
       status: 'active',
     }
-    // 恢復時不載入歷史，因為 AsyncAPI 的 SessionResumedPayload 沒有 history
-    generationHistory.value = []
+    // 歷史由 View 層在 resume 前透過 REST API 載入，此處不清空
   }
 
   function handleSessionUpdated(event: SessionUpdatedEvent) {

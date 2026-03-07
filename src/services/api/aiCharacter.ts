@@ -111,7 +111,7 @@ export async function uploadCharacterImage(
     }
   }
 
-  const response = await apiClient.post<ApiResponse<Character>>(
+  const response = await apiClient.post<ApiResponse<{ url: string; type: string; character: Character }>>(
     `/api/ai/characters/${id}/images`,
     formData,
     {
@@ -120,7 +120,7 @@ export async function uploadCharacterImage(
       },
     }
   )
-  return response.data.data!
+  return response.data.data!.character
 }
 
 /**
