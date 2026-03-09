@@ -164,11 +164,8 @@ function handleGenerate(payload: {
   }
 }
 
-// 新對話
+// 新對話（不結束 session，僅清除本地狀態）
 function handleNewChat() {
-  if (hasActiveSession.value) {
-    aiGenerationStore.endSession()
-  }
   aiGenerationStore.clearHistory()
   showMobileSidebar.value = false
 }
@@ -186,10 +183,6 @@ async function handleSessionSelect(session: SessionItem) {
       aiGenerationStore.resumeSession(session.id)
     } else {
       // completed session 僅檢視歷史，不建立新 session
-      // 結束目前的 active session（如有）
-      if (hasActiveSession.value) {
-        aiGenerationStore.endSession()
-      }
     }
 
     // 帶入該 session 的設定，方便使用者以相同設定繼續生成
@@ -208,7 +201,6 @@ async function handleSessionSelect(session: SessionItem) {
 // Session 被刪除
 function handleSessionDeleted(sessionId: string) {
   if (currentSession.value?.id === sessionId) {
-    aiGenerationStore.endSession()
     aiGenerationStore.clearHistory()
   }
 }
