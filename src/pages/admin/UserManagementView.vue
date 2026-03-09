@@ -119,6 +119,7 @@ onMounted(() => {
             <option value="super_admin">系統管理員</option>
             <option value="admin">管理員</option>
             <option value="manager">訊息管理員</option>
+            <option value="designer">設計師</option>
             <option value="no_permission">無權限</option>
           </select>
         </div>

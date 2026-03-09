@@ -1,5 +1,5 @@
 // Permission roles supported by the frontend
-export type Role = 'super_admin' | 'admin' | 'manager' | 'no_permission'
+export type Role = 'super_admin' | 'admin' | 'manager' | 'designer' | 'no_permission'
 
 // Root permission configuration definition loaded from frontend-permissions.json
 export interface PermissionConfig {

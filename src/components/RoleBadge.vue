@@ -13,6 +13,7 @@ const fallbackColors: Record<Role, string> = {
   super_admin: '#6B21A8',
   admin: '#4338CA',
   manager: '#059669',
+  designer: '#D97706',
   no_permission: '#6B7280',
 }
 

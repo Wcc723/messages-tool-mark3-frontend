@@ -283,6 +283,91 @@
         ]
       }
     },
+    "designer": {
+      "displayName": "設計師",
+      "description": "設計師，可使用全部 AI 產圖功能，但無法使用排程與 Discord 發文工具",
+      "features": {
+        "users": {
+          "canView": true,
+          "canViewAll": false,
+          "canCreate": false,
+          "canEdit": true,
+          "canEditAll": false,
+          "canDelete": false,
+          "canManageRoles": false
+        },
+        "schedules": {
+          "canView": false,
+          "canViewAll": false,
+          "canCreate": false,
+          "canEdit": false,
+          "canEditAll": false,
+          "canDelete": false,
+          "canDeleteAll": false
+        },
+        "discord": {
+          "canView": false,
+          "canViewAll": false,
+          "canSendMessage": false,
+          "canManageBot": false
+        },
+        "images": {
+          "canView": true,
+          "canViewAll": false,
+          "canUpload": true,
+          "canDelete": true,
+          "canDeleteAll": false
+        },
+        "system": {
+          "canViewLogs": false,
+          "canViewDashboard": false,
+          "canManageSettings": false
+        },
+        "checkin": {
+          "canView": false,
+          "canViewAll": false,
+          "canCreate": false,
+          "canEdit": false,
+          "canEditAll": false,
+          "canDelete": false,
+          "canDeleteAll": false
+        },
+        "ai": {
+          "canView": true,
+          "canViewAll": false,
+          "canManageCharacters": true,
+          "canManageScenarios": true,
+          "canViewStatistics": false
+        }
+      },
+      "navigation": {
+        "showScheduleNew": false,
+        "showScheduleEdit": false,
+        "showScheduleCalendar": false,
+        "showScheduleStatus": false,
+        "showDiscord": false,
+        "showProfile": true,
+        "showUserManagement": false,
+        "showCheckinSchedules": false,
+        "showAiGenerator": true,
+        "showAiCharacters": true,
+        "showAiScenarios": true,
+        "showAiAdmin": false
+      },
+      "routes": {
+        "allowedPaths": [
+          "/dashboard",
+          "/dashboard/profile",
+          "/dashboard/ai/generator",
+          "/dashboard/ai/characters",
+          "/dashboard/ai/characters/new",
+          "/dashboard/ai/characters/edit/:id",
+          "/dashboard/ai/scenarios",
+          "/dashboard/ai/scenarios/new",
+          "/dashboard/ai/scenarios/edit/:id"
+        ]
+      }
+    },
     "no_permission": {
       "displayName": "無權限",
       "description": "無權限使用者，僅能查看個人資料",
