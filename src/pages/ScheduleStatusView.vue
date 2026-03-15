@@ -114,11 +114,14 @@ const fetchLogs = async () => {
       await discordStore.fetchChannels()
     }
 
-    await scheduleStore.fetchSchedules()
+    const hasTimeRange = !!(startDateTime.value || endDateTime.value)
+    const logLimit = hasTimeRange ? 100 : 10
+
+    await scheduleStore.fetchSchedules({ limit: logLimit })
 
     const allLogs = await Promise.all(
       schedules.value.map(async (schedule) => {
-        const data = await scheduleStore.fetchScheduleLogs(schedule.id, { limit: 50 })
+        const data = await scheduleStore.fetchScheduleLogs(schedule.id, { limit: logLimit })
         return data.logs.map((log) => ({
           ...log,
           scheduleTitle: schedule.title,
@@ -240,7 +243,7 @@ onMounted(() => {
           </select>
         </div>
       </div>
-      <div class="grid grid-cols-1 gap-4 mt-4 md:grid-cols-2">
+      <div class="grid grid-cols-1 gap-4 mt-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
         <div class="flex flex-col gap-2">
           <label class="text-sm font-medium text-gray-700">開始時間</label>
           <input
@@ -257,6 +260,16 @@ onMounted(() => {
             class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-gray-900"
           />
         </div>
+        <button
+          type="button"
+          :disabled="isLoading"
+          @click="fetchLogs"
+          class="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+        >
+          <i v-if="isLoading" class="bi bi-arrow-repeat animate-spin"></i>
+          <i v-else class="bi bi-search"></i>
+          {{ isLoading ? '查詢中...' : '查詢記錄' }}
+        </button>
       </div>
     </div>
 
