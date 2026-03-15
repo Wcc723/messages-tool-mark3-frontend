@@ -6,6 +6,7 @@ tools:
   - Grep
   - Glob
   - Bash
+color: orange
 ---
 
 # Git 協作代理

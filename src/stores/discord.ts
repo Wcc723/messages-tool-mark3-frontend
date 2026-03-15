@@ -36,8 +36,8 @@ export const useDiscordStore = defineStore('discord', () => {
   })
 
   const textChannels = computed(() => {
-    // Discord 頻道類型: 0 = 文字頻道
-    return channels.value.filter((channel) => channel.type === 0)
+    // Discord 頻道類型: 0 = 文字頻道, 5 = 公告頻道
+    return channels.value.filter((channel) => channel.type === 0 || channel.type === 5)
   })
 
   // Actions

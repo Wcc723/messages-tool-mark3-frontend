@@ -721,7 +721,7 @@ const validateForm = ({ alertOnError = false } = {}) => {
                       selectedChannel ? 'bg-gray-900 text-white' : 'bg-gray-200 text-gray-500',
                     ]"
                   >
-                    <i class="bi bi-hash text-lg"></i>
+                    <i :class="selectedChannel?.type === 5 ? 'bi bi-megaphone text-lg' : 'bi bi-hash text-lg'"></i>
                   </div>
                   <div class="text-left">
                     <p v-if="selectedChannel" class="font-medium text-gray-900">
@@ -789,9 +789,10 @@ const validateForm = ({ alertOnError = false } = {}) => {
                               : 'hover:bg-gray-50 text-gray-700',
                           ]"
                         >
-                          <span class="text-sm font-medium whitespace-nowrap"
-                            >#{{ channel.name }}</span
-                          >
+                          <i
+                            :class="channel.type === 5 ? 'bi bi-megaphone text-amber-500' : 'bi bi-hash text-gray-400'"
+                          ></i>
+                          <span class="text-sm font-medium whitespace-nowrap">{{ channel.name }}</span>
                           <span v-if="channel.topic" class="text-xs text-gray-500 truncate">
                             {{ channel.topic }}
                           </span>

@@ -358,7 +358,7 @@ onMounted(async () => {
                     :class="{ 'bg-indigo-50': form.channelId === channel.id }"
                     @click="selectChannel(channel.id)"
                   >
-                    <i class="bi bi-hash text-gray-400"></i>
+                    <i :class="channel.type === 5 ? 'bi bi-megaphone text-amber-500' : 'bi bi-hash text-gray-400'"></i>
                     <span class="flex-1 text-sm">{{ channel.name }}</span>
                     <i
                       v-if="form.channelId === channel.id"

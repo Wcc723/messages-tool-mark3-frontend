@@ -206,6 +206,7 @@ const fetchSchedules = async (params?: { search?: string; status?: ScheduleStatu
     await scheduleStore.fetchSchedules({
       search: params?.search && params.search.trim() !== '' ? params.search.trim() : undefined,
       status: params?.status ? params.status : undefined,
+      limit: 100,
     })
   } catch (error: any) {
     const message = error.response?.data?.message || '載入排程失敗'
