@@ -5,6 +5,7 @@ import { usePermissionStore } from '@/stores/permission'
 import RoleBadge from '@/components/RoleBadge.vue'
 import type { AdminUser } from '@/services/api'
 import type { Role } from '@/types/permission'
+import { getApiErrorMessage } from '@/utils/error'
 
 const props = defineProps<{
   user: AdminUser
@@ -89,12 +90,8 @@ async function handleSave() {
 
     emit('saved', { role: selectedRole.value })
     emit('close')
-  } catch (err: any) {
-    const message =
-      err?.response?.data?.message ||
-      err?.message ||
-      '更新角色失敗，請稍後再試'
-    error.value = message
+  } catch (err: unknown) {
+    error.value = getApiErrorMessage(err, '更新角色失敗，請稍後再試')
   } finally {
     isSaving.value = false
   }

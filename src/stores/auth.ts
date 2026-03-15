@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { authApi } from '@/services/api'
+import { getApiErrorMessage } from '@/utils/error'
 import type { User, LoginRequest, RegisterRequest } from '@/services/api'
 import { getCookie, setCookie, removeCookie, COOKIE_NAMES, DEFAULT_COOKIE_OPTIONS } from '@/utils/cookies'
 
@@ -45,8 +46,8 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       return false
-    } catch (err: any) {
-      error.value = err.message || '登入失敗，請檢查您的帳號密碼'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '登入失敗，請檢查您的帳號密碼')
       throw err
     } finally {
       isLoading.value = false
@@ -79,8 +80,8 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       return false
-    } catch (err: any) {
-      error.value = err.message || '註冊失敗，請稍後再試'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '註冊失敗，請稍後再試')
       throw err
     } finally {
       isLoading.value = false
@@ -115,10 +116,10 @@ export const useAuthStore = defineStore('auth', () => {
       })
 
       return true
-    } catch (err: any) {
-      const message = err?.message || 'Google 登入失敗，請稍後再試'
+    } catch (err: unknown) {
+      const message = getApiErrorMessage(err, 'Google 登入失敗，請稍後再試')
       error.value = message
-      throw typeof err === 'object' && err !== null ? err : new Error(message)
+      throw err instanceof Error ? err : new Error(message)
     } finally {
       isLoading.value = false
     }
@@ -163,10 +164,11 @@ export const useAuthStore = defineStore('auth', () => {
         const userData = await authApi.getProfile()
         user.value = userData
         return true
-      } catch (err: any) {
-        error.value = err.message || '取得使用者資料失敗'
+      } catch (err: unknown) {
+        const errMsg = getApiErrorMessage(err, '取得使用者資料失敗')
+        error.value = errMsg
         // If unauthorized, clear auth state
-        if (err.message?.includes('未認證') || err.message?.includes('401')) {
+        if (errMsg.includes('未認證') || errMsg.includes('401')) {
           await logout()
         }
         throw err

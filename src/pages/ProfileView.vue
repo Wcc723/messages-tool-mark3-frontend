@@ -2,6 +2,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import type { User } from '@/services/api'
 import { authApi } from '@/services/api'
+import { getApiErrorMessage } from '@/utils/error'
 
 const profile = ref<User | null>(null)
 const isLoadingProfile = ref(true)
@@ -55,8 +56,8 @@ const fetchProfile = async () => {
     const data = await authApi.getProfile()
     profile.value = data
     resetProfileForm()
-  } catch (error: any) {
-    profileError.value = error.response?.data?.message || '無法取得個人資料'
+  } catch (err: unknown) {
+    profileError.value = getApiErrorMessage(err, '無法取得個人資料')
   } finally {
     isLoadingProfile.value = false
   }
@@ -87,8 +88,8 @@ const handleUpdateProfile = async () => {
     await fetchProfile()
     isEditingProfile.value = false
     alert('個人資料已更新')
-  } catch (error: any) {
-    profileError.value = error.response?.data?.message || '更新個人資料失敗'
+  } catch (err: unknown) {
+    profileError.value = getApiErrorMessage(err, '更新個人資料失敗')
   } finally {
     isSavingProfile.value = false
   }
@@ -128,8 +129,8 @@ const handleChangePassword = async () => {
     })
     alert('密碼已更新')
     handleCancelPassword()
-  } catch (error: any) {
-    passwordError.value = error.response?.data?.message || '更新密碼失敗'
+  } catch (err: unknown) {
+    passwordError.value = getApiErrorMessage(err, '更新密碼失敗')
   } finally {
     isSavingPassword.value = false
   }

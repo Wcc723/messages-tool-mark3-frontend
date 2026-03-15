@@ -70,19 +70,22 @@ apiClient.interceptors.response.use(
 
     // 400 錯誤 - 請求資料錯誤
     if (error.response?.status === 400) {
-      const message = (error.response.data as any)?.message || '請求資料錯誤'
+      const data = error.response.data as Record<string, unknown> | undefined
+      const message = (typeof data?.message === 'string' ? data.message : null) || '請求資料錯誤'
       console.error('Validation Error:', message)
     }
 
     // 404 錯誤 - 資源不存在
     if (error.response?.status === 404) {
-      const message = (error.response.data as any)?.message || '找不到請求的資源'
+      const data = error.response.data as Record<string, unknown> | undefined
+      const message = (typeof data?.message === 'string' ? data.message : null) || '找不到請求的資源'
       console.error('Not Found:', message)
     }
 
     // 500 錯誤 - 伺服器錯誤
     if (error.response?.status === 500) {
-      const message = (error.response.data as any)?.message || '伺服器發生錯誤，請稍後再試'
+      const data = error.response.data as Record<string, unknown> | undefined
+      const message = (typeof data?.message === 'string' ? data.message : null) || '伺服器發生錯誤，請稍後再試'
       console.error('Server Error:', message)
     }
 

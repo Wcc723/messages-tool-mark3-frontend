@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { aiCharacterApi } from '@/services/api'
+import { getApiErrorMessage } from '@/utils/error'
 import type {
   Character,
   CharacterCreateRequest,
@@ -47,8 +48,8 @@ export const useAiCharacterStore = defineStore('aiCharacter', () => {
         pagination.value = result.pagination
       }
       return result
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '載入角色列表失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '載入角色列表失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -66,8 +67,8 @@ export const useAiCharacterStore = defineStore('aiCharacter', () => {
       const character = await aiCharacterApi.getCharacter(id)
       currentCharacter.value = character
       return character
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '載入角色失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '載入角色失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -92,8 +93,8 @@ export const useAiCharacterStore = defineStore('aiCharacter', () => {
         pagination.value.total++
       }
       return character
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '建立角色失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '建立角色失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -124,8 +125,8 @@ export const useAiCharacterStore = defineStore('aiCharacter', () => {
       }
 
       return updated
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '更新角色失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '更新角色失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -160,13 +161,13 @@ export const useAiCharacterStore = defineStore('aiCharacter', () => {
       if (currentCharacter.value?.id === id) {
         currentCharacter.value = null
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       // 失敗時還原
       if (backup && index !== -1 && characters.value) {
         characters.value.splice(index, 0, backup)
         pagination.value.total = originalTotal
       }
-      error.value = err.response?.data?.message || '刪除角色失敗'
+      error.value = getApiErrorMessage(err, '刪除角色失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -206,8 +207,8 @@ export const useAiCharacterStore = defineStore('aiCharacter', () => {
       }
 
       return updated
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '上傳圖片失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '上傳圖片失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -238,8 +239,8 @@ export const useAiCharacterStore = defineStore('aiCharacter', () => {
       }
 
       return updated
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '刪除圖片失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '刪除圖片失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -262,7 +263,7 @@ export const useAiCharacterStore = defineStore('aiCharacter', () => {
       const data = await aiCharacterApi.getTags()
       tags.value = data
       return data
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('載入標籤失敗:', err)
       return []
     }

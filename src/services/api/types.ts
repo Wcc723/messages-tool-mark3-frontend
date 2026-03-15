@@ -4,7 +4,7 @@ import type { Role } from '@/types/permission'
 // 基礎回應格式
 // ============================================
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean
   message?: string
   data?: T

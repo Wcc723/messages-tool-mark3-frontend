@@ -5,8 +5,9 @@ import { marked } from 'marked'
 import { useRouter, useRoute } from 'vue-router'
 import { useDiscordStore } from '@/stores/discord'
 import { useScheduleStore } from '@/stores/schedule'
-import type { ScheduleType, Timezone, ScheduleAttachmentImage } from '@/services/api'
+import type { ScheduleType, ScheduleAttachmentImage, ScheduleCreateRequest } from '@/services/api'
 import { storageApi } from '@/services/api'
+import { getApiErrorMessage } from '@/utils/error'
 
 const router = useRouter()
 const route = useRoute()
@@ -155,9 +156,9 @@ onMounted(async () => {
       form.value = buildDefaultForm()
       uploadedImages.value = []
     }
-  } catch (error: any) {
-    console.error('Failed to load initial data:', error)
-    alert(error.response?.data?.message || '載入資料失敗')
+  } catch (err: unknown) {
+    console.error('Failed to load initial data:', err)
+    alert(getApiErrorMessage(err, '載入資料失敗'))
   }
 })
 
@@ -221,16 +222,16 @@ async function loadSchedule(id: string) {
           discordUrl: image.discordUrl ?? null,
         }))
       : []
-  } catch (error: any) {
-    console.error('Failed to load schedule:', error)
-    alert(error.response?.data?.message || '載入排程失敗')
+  } catch (err: unknown) {
+    console.error('Failed to load schedule:', err)
+    alert(getApiErrorMessage(err, '載入排程失敗'))
     router.push('/dashboard/schedule/calendar')
   }
 }
 
 // Build request payload
 function buildPayload() {
-  const payload: any = {
+  const payload: Partial<ScheduleCreateRequest> & Pick<ScheduleCreateRequest, 'title' | 'content' | 'scheduleType' | 'scheduledTime' | 'channelId'> = {
     title: form.value.title,
     content: form.value.content,
     scheduleType: form.value.scheduleType,
@@ -322,9 +323,9 @@ async function handleFileChange(event: Event) {
         }
 
         uploadedImages.value.push(image)
-      } catch (error: any) {
-        console.error('Failed to upload image:', error)
-        const message = error.response?.data?.message || '圖片上傳失敗'
+      } catch (err: unknown) {
+        console.error('Failed to upload image:', err)
+        const message = getApiErrorMessage(err, '圖片上傳失敗')
         uploadError.value = message
         alert(message)
       }
@@ -346,9 +347,9 @@ async function removeImage(image: ScheduleAttachmentImage) {
   try {
     await storageApi.deleteImage(image.filePath)
     uploadedImages.value = uploadedImages.value.filter((item) => item.imageId !== image.imageId)
-  } catch (error: any) {
-    console.error('Failed to delete image:', error)
-    const message = error.response?.data?.message || '刪除圖片失敗'
+  } catch (err: unknown) {
+    console.error('Failed to delete image:', err)
+    const message = getApiErrorMessage(err, '刪除圖片失敗')
     uploadError.value = message
     alert(message)
   } finally {
@@ -374,9 +375,9 @@ async function handleSubmit() {
     }
 
     router.push('/dashboard/schedule/calendar')
-  } catch (error: any) {
-    console.error('Failed to save schedule:', error)
-    alert(error.response?.data?.message || '操作失敗')
+  } catch (err: unknown) {
+    console.error('Failed to save schedule:', err)
+    alert(getApiErrorMessage(err, '操作失敗'))
   } finally {
     isSubmitting.value = false
   }

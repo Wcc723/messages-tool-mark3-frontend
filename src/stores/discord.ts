@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { discordApi } from '@/services/api'
+import { getApiErrorMessage } from '@/utils/error'
 import type { DiscordChannel, DiscordGuild } from '@/services/api'
 
 export const useDiscordStore = defineStore('discord', () => {
@@ -58,8 +59,8 @@ export const useDiscordStore = defineStore('discord', () => {
       currentGuildId.value = data.guildId
       cacheTimestamp.value = now
       return data.channels
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '載入 Discord 頻道失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '載入 Discord 頻道失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -74,8 +75,8 @@ export const useDiscordStore = defineStore('discord', () => {
       const data = await discordApi.getDiscordGuilds()
       guilds.value = data.guilds
       return data.guilds
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '載入 Discord 伺服器列表失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '載入 Discord 伺服器列表失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -89,8 +90,8 @@ export const useDiscordStore = defineStore('discord', () => {
     try {
       const response = await discordApi.sendTestMessage(channelId, content)
       return response
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '發送測試訊息失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '發送測試訊息失敗')
       throw err
     } finally {
       isLoading.value = false

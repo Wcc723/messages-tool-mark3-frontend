@@ -6,6 +6,7 @@ import { adminApi } from '@/services/api'
 import type { AdminUser } from '@/services/api'
 import type { Role } from '@/types/permission'
 import { usePermission } from '@/composables/usePermission'
+import { getApiErrorMessage } from '@/utils/error'
 
 const users = ref<AdminUser[]>([])
 const isLoading = ref(false)
@@ -55,12 +56,8 @@ async function fetchUsers(page = pagination.value.currentPage) {
       ...pagination.value,
       ...response.pagination,
     }
-  } catch (err: any) {
-    const message =
-      err?.response?.data?.message ||
-      err?.message ||
-      '載入使用者列表時發生錯誤，請稍後再試'
-    error.value = message
+  } catch (err: unknown) {
+    error.value = getApiErrorMessage(err, '載入使用者列表時發生錯誤，請稍後再試')
   } finally {
     isLoading.value = false
   }
@@ -74,7 +71,7 @@ function changePage(page: number) {
   fetchUsers(page)
 }
 
-function handleRoleSaved(_: { role: Role }) {
+function handleRoleSaved() {
   fetchUsers()
 }
 

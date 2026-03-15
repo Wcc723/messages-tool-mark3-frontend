@@ -8,6 +8,7 @@ import type {
   GenerationHistoryAdmin,
   GenerationStatus,
 } from '@/types/ai-generation'
+import { getApiErrorMessage } from '@/utils/error'
 
 // 統計資料
 const statistics = ref<AIStatistics | null>(null)
@@ -107,9 +108,9 @@ async function loadStatistics() {
   isLoadingStats.value = true
   try {
     statistics.value = await aiAdminApi.getStatistics()
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('載入統計資料失敗:', err)
-    error.value = err.response?.data?.message || '載入統計資料失敗'
+    error.value = getApiErrorMessage(err, '載入統計資料失敗')
   } finally {
     isLoadingStats.value = false
   }
@@ -120,7 +121,7 @@ async function loadUsageTrend() {
   isLoadingTrend.value = true
   try {
     usageTrend.value = (await aiAdminApi.getTrend(trendDays.value)) || []
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('載入使用趨勢失敗:', err)
   } finally {
     isLoadingTrend.value = false
@@ -132,7 +133,7 @@ async function loadLeaderboard() {
   isLoadingLeaderboard.value = true
   try {
     leaderboard.value = (await aiAdminApi.getLeaderboard({ limit: 10 })) || []
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('載入排行榜失敗:', err)
   } finally {
     isLoadingLeaderboard.value = false
@@ -152,7 +153,7 @@ async function loadHistory() {
     })
     historyList.value = result?.data || []
     historyTotalPages.value = result?.pagination?.totalPages || 1
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('載入生成歷史失敗:', err)
   } finally {
     isLoadingHistory.value = false

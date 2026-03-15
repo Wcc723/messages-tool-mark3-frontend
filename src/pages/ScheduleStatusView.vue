@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import { useScheduleStore } from '@/stores/schedule'
 import { useDiscordStore } from '@/stores/discord'
 import type { ExecutionLog, ExecutionStatus } from '@/services/api'
+import { getApiErrorMessage } from '@/utils/error'
 
 interface ScheduleExecutionLog extends ExecutionLog {
   scheduleTitle: string
@@ -129,9 +130,9 @@ const fetchLogs = async () => {
     logs.value = allLogs
       .flat()
       .sort((a, b) => new Date(b.executedAt).getTime() - new Date(a.executedAt).getTime())
-  } catch (error: any) {
-    console.error('Failed to load schedule logs:', error)
-    fetchError.value = error.response?.data?.message || '載入排程執行記錄失敗'
+  } catch (err: unknown) {
+    console.error('Failed to load schedule logs:', err)
+    fetchError.value = getApiErrorMessage(err, '載入排程執行記錄失敗')
   } finally {
     isLoading.value = false
   }
@@ -156,9 +157,9 @@ const handleExecuteSchedule = async (scheduleId: string) => {
     }
     // 重新載入記錄
     await fetchLogs()
-  } catch (error: any) {
-    console.error('Failed to execute schedule:', error)
-    alert(error.response?.data?.message || '執行排程失敗')
+  } catch (err: unknown) {
+    console.error('Failed to execute schedule:', err)
+    alert(getApiErrorMessage(err, '執行排程失敗'))
   } finally {
     executingScheduleId.value = null
   }

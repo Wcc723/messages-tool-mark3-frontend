@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { checkinPublicApi } from '@/services/api'
 import type { CheckinStats, CheckinUser, PaginationMeta } from '@/services/api/types'
+import { getApiErrorMessage } from '@/utils/error'
 
 const route = useRoute()
 const router = useRouter()
@@ -28,8 +29,8 @@ async function loadStats() {
   error.value = null
   try {
     stats.value = await checkinPublicApi.getCheckinStats(scheduleId.value)
-  } catch (err: any) {
-    error.value = err.response?.data?.message || '載入統計資料失敗'
+  } catch (err: unknown) {
+    error.value = getApiErrorMessage(err, '載入統計資料失敗')
     console.error('載入統計資料失敗:', err)
   } finally {
     isLoadingStats.value = false
@@ -47,7 +48,7 @@ async function loadUsers(page = 1) {
     })
     users.value = response.users
     pagination.value = response.pagination
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('載入用戶列表失敗:', err)
   } finally {
     isLoadingUsers.value = false

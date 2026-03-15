@@ -2,7 +2,6 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import SidebarNav from '@/components/SidebarNav.vue'
-import RoleBadge from '@/components/RoleBadge.vue'
 import ToastContainer from '@/components/ToastContainer.vue'
 import { useAuthStore } from '@/stores/auth'
 

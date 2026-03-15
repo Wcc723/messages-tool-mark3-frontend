@@ -15,7 +15,7 @@ export interface GoogleAccountsId {
     auto_select?: boolean
     cancel_on_tap_outside?: boolean
   }) => void
-  prompt: (momentListener?: (notification: any) => void) => void
+  prompt: (momentListener?: (notification: unknown) => void) => void
   renderButton: (
     parent: HTMLElement,
     options: {
@@ -30,7 +30,7 @@ export interface GoogleAccountsId {
     }
   ) => void
   disableAutoSelect: () => void
-  revoke: (email: string, callback: (response: any) => void) => void
+  revoke: (email: string, callback: (response: unknown) => void) => void
 }
 
 export interface GoogleAccounts {

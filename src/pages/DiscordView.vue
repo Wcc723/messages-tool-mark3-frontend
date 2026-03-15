@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useDiscordStore } from '@/stores/discord'
 import { discordApi } from '@/services/api'
+import { getApiErrorMessage } from '@/utils/error'
 
 const discordStore = useDiscordStore()
 const { guilds, channels } = storeToRefs(discordStore)
@@ -59,8 +60,8 @@ const loadBotInfo = async () => {
     botInfo.value = data.bot
     botStatus.value = data.status === 'connected' ? 'connected' : 'disconnected'
     botGuildCount.value = data.guildCount
-  } catch (error: any) {
-    botError.value = error.response?.data?.message || '無法取得 Bot 資訊'
+  } catch (err: unknown) {
+    botError.value = getApiErrorMessage(err, '無法取得 Bot 資訊')
     botStatus.value = 'unknown'
   } finally {
     isLoadingBot.value = false
@@ -78,8 +79,8 @@ const loadGuilds = async () => {
         selectedGuildId.value = firstGuild.id
       }
     }
-  } catch (error: any) {
-    guildError.value = error.response?.data?.message || '載入伺服器列表失敗'
+  } catch (err: unknown) {
+    guildError.value = getApiErrorMessage(err, '載入伺服器列表失敗')
   } finally {
     isLoadingGuilds.value = false
   }
@@ -99,8 +100,8 @@ const loadChannels = async (guildId: string) => {
     if (!filteredChannels.value.some((channel) => channel.id === testChannelId.value)) {
       testChannelId.value = ''
     }
-  } catch (error: any) {
-    channelError.value = error.response?.data?.message || '載入頻道失敗'
+  } catch (err: unknown) {
+    channelError.value = getApiErrorMessage(err, '載入頻道失敗')
   } finally {
     isLoadingChannels.value = false
   }
@@ -121,8 +122,8 @@ const handleTestMessage = async () => {
     await discordApi.sendTestMessage(testChannelId.value, testContent.value.trim())
     alert('測試訊息已發送')
     testContent.value = ''
-  } catch (error: any) {
-    testError.value = error.response?.data?.message || '發送測試訊息失敗'
+  } catch (err: unknown) {
+    testError.value = getApiErrorMessage(err, '發送測試訊息失敗')
   } finally {
     isSendingTest.value = false
   }

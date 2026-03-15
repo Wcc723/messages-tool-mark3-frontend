@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { aiScenarioApi } from '@/services/api'
+import { getApiErrorMessage } from '@/utils/error'
 import type {
   Scenario,
   ScenarioCreateRequest,
@@ -42,8 +43,8 @@ export const useAiScenarioStore = defineStore('aiScenario', () => {
         pagination.value = result.pagination
       }
       return result
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '載入情境列表失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '載入情境列表失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -58,8 +59,8 @@ export const useAiScenarioStore = defineStore('aiScenario', () => {
       const scenario = await aiScenarioApi.getScenario(id)
       currentScenario.value = scenario
       return scenario
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '載入情境失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '載入情境失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -80,8 +81,8 @@ export const useAiScenarioStore = defineStore('aiScenario', () => {
         pagination.value.total++
       }
       return scenario
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '建立情境失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '建立情境失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -107,8 +108,8 @@ export const useAiScenarioStore = defineStore('aiScenario', () => {
       }
 
       return updated
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '更新情境失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '更新情境失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -139,12 +140,12 @@ export const useAiScenarioStore = defineStore('aiScenario', () => {
       if (currentScenario.value?.id === id) {
         currentScenario.value = null
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (backup && index !== -1 && scenarios.value) {
         scenarios.value.splice(index, 0, backup)
         pagination.value.total = originalTotal
       }
-      error.value = err.response?.data?.message || '刪除情境失敗'
+      error.value = getApiErrorMessage(err, '刪除情境失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -174,8 +175,8 @@ export const useAiScenarioStore = defineStore('aiScenario', () => {
       }
 
       return updated
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '上傳圖片失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '上傳圖片失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -201,8 +202,8 @@ export const useAiScenarioStore = defineStore('aiScenario', () => {
       }
 
       return updated
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '刪除圖片失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '刪除圖片失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -222,7 +223,7 @@ export const useAiScenarioStore = defineStore('aiScenario', () => {
       const data = await aiScenarioApi.getTags()
       tags.value = data
       return data
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('載入標籤失敗:', err)
       return []
     }

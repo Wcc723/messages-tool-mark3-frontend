@@ -196,8 +196,8 @@ async function handleSubmit() {
     }
 
     router.push({ name: 'CheckinSchedules' })
-  } catch (error: any) {
-    console.error('Failed to save schedule:', error)
+  } catch (err: unknown) {
+    console.error('Failed to save schedule:', err)
     alert(checkinStore.error || '操作失敗')
   } finally {
     isSubmitting.value = false
@@ -242,7 +242,7 @@ onMounted(async () => {
         checkinMode: schedule.checkinMode || 'standard',
         extendedHours: schedule.extendedHours,
       }
-    } catch (error) {
+    } catch {
       alert('載入排程失敗')
       router.push({ name: 'CheckinSchedules' })
     }

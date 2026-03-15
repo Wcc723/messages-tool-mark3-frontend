@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import type { GoogleCredentialResponse } from '@/types/google'
+import { getApiErrorMessage } from '@/utils/error'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -54,9 +55,9 @@ const handleSubmit = async () => {
 
     // Success - redirect to dashboard
     router.push('/dashboard')
-  } catch (error: any) {
+  } catch (err: unknown) {
     // Error is already set in store, but we can add additional handling here
-    console.error('Authentication error:', error)
+    console.error('Authentication error:', err)
   }
 }
 
@@ -71,9 +72,9 @@ const handleGoogleLogin = async (response: GoogleCredentialResponse) => {
     if (isSuccess) {
       router.push('/dashboard')
     }
-  } catch (error: any) {
-    console.error('Google login error:', error)
-    localError.value = error.message || 'Google 登入失敗'
+  } catch (err: unknown) {
+    console.error('Google login error:', err)
+    localError.value = getApiErrorMessage(err, 'Google 登入失敗')
   }
 }
 

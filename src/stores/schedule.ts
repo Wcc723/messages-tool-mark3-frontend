@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { scheduleApi } from '@/services/api'
+import { getApiErrorMessage } from '@/utils/error'
 import type {
   Schedule,
   ScheduleCreateRequest,
@@ -39,8 +40,8 @@ export const useScheduleStore = defineStore('schedule', () => {
       schedules.value = data.schedules
       pagination.value = data.pagination
       return data
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '載入排程列表失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '載入排程列表失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -58,8 +59,8 @@ export const useScheduleStore = defineStore('schedule', () => {
       const schedule = await scheduleApi.getScheduleById(id)
       currentSchedule.value = schedule
       return schedule
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '載入排程失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '載入排程失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -80,8 +81,8 @@ export const useScheduleStore = defineStore('schedule', () => {
       // 更新總數
       pagination.value.totalCount++
       return schedule
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '建立排程失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '建立排程失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -110,8 +111,8 @@ export const useScheduleStore = defineStore('schedule', () => {
       }
 
       return updated
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '更新排程失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '更新排程失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -143,8 +144,8 @@ export const useScheduleStore = defineStore('schedule', () => {
       }
 
       return updated
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '更新排程狀態失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '更新排程狀態失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -175,13 +176,13 @@ export const useScheduleStore = defineStore('schedule', () => {
       if (currentSchedule.value?.id === id) {
         currentSchedule.value = null
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       // 失敗時還原
       if (backup && index !== -1) {
         schedules.value.splice(index, 0, backup)
         pagination.value.totalCount = originalCount
       }
-      error.value = err.response?.data?.message || '刪除排程失敗'
+      error.value = getApiErrorMessage(err, '刪除排程失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -227,8 +228,8 @@ export const useScheduleStore = defineStore('schedule', () => {
       const data = await scheduleApi.getTimezones()
       timezones.value = data
       return data
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '載入時區列表失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '載入時區列表失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -245,8 +246,8 @@ export const useScheduleStore = defineStore('schedule', () => {
     try {
       const data = await scheduleApi.getScheduleLogs(id, params)
       return data
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '載入執行記錄失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '載入執行記錄失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -263,8 +264,8 @@ export const useScheduleStore = defineStore('schedule', () => {
     try {
       const response = await scheduleApi.executeSchedule(id)
       return response
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '執行排程失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '執行排程失敗')
       throw err
     } finally {
       isLoading.value = false

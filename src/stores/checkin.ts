@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import { checkinApi } from '@/services/api'
+import { getApiErrorMessage } from '@/utils/error'
 import type {
   CheckinSchedule,
   CheckinScheduleCreateRequest,
@@ -38,8 +39,8 @@ export const useCheckinStore = defineStore('checkin', () => {
       const data = await checkinApi.getCheckinSchedules(params)
       schedules.value = data
       return data
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '載入打卡排程列表失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '載入打卡排程列表失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -57,8 +58,8 @@ export const useCheckinStore = defineStore('checkin', () => {
       const schedule = await checkinApi.getCheckinScheduleById(id)
       currentSchedule.value = schedule
       return schedule
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '載入打卡排程失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '載入打卡排程失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -76,8 +77,8 @@ export const useCheckinStore = defineStore('checkin', () => {
       const schedule = await checkinApi.createCheckinSchedule(data)
       schedules.value.unshift(schedule)
       return schedule
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '建立打卡排程失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '建立打卡排程失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -106,8 +107,8 @@ export const useCheckinStore = defineStore('checkin', () => {
       }
 
       return updated
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '更新打卡排程失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '更新打卡排程失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -136,12 +137,12 @@ export const useCheckinStore = defineStore('checkin', () => {
       if (currentSchedule.value?.id === id) {
         currentSchedule.value = null
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       // 失敗時還原
       if (backup && index !== -1) {
         schedules.value.splice(index, 0, backup)
       }
-      error.value = err.response?.data?.message || '刪除打卡排程失敗'
+      error.value = getApiErrorMessage(err, '刪除打卡排程失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -170,8 +171,8 @@ export const useCheckinStore = defineStore('checkin', () => {
       }
 
       return updated
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '切換狀態失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '切換狀態失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -203,8 +204,8 @@ export const useCheckinStore = defineStore('checkin', () => {
       }
 
       return response.data?.scanLogId
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '重新掃描失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '重新掃描失敗')
       throw err
     } finally {
       isLoading.value = false
@@ -222,8 +223,8 @@ export const useCheckinStore = defineStore('checkin', () => {
         currentScanLog.value.status = status
       }
       return status
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '取得掃描狀態失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '取得掃描狀態失敗')
       throw err
     }
   }
@@ -239,8 +240,8 @@ export const useCheckinStore = defineStore('checkin', () => {
         currentScanLog.value.result = result
       }
       return result
-    } catch (err: any) {
-      error.value = err.response?.data?.message || '取得掃描結果失敗'
+    } catch (err: unknown) {
+      error.value = getApiErrorMessage(err, '取得掃描結果失敗')
       throw err
     }
   }
